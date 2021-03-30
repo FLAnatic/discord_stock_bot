@@ -7,12 +7,26 @@ import re
 import json
 from typing import List,Dict
 import math
+from sys import exit
+
+help_text = """
+
+**Commands**
+    - !movers - Returns the top 25 gainers,losers and volume stocks of the day.
+    - !help   - Display this help message you are reading
+**Inline Features**
+    The bot looks at every message in the chat room it is in for stock symbols. Symbols start with a
+    `$` followed by the stock symbol. For example: $gme will return data for Gamestop Corp.
+    Market data is provided by [Yahoo! Finance](https://rapidapi.com/apidojo/api/yahoo-finance1)
+    """
+
+
 
 try:
-    tokenFile = open('token.txt', 'r')
+    tokenFile = open("token.txt", 'r')
 except OSError:
     print("Could not open/read token file.")
-    sys.exit()
+    exit()
 
 with tokenFile:
     TOKEN = tokenFile.readline()
@@ -152,7 +166,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
     return dataMessages
 
 client = discord.Client()
-bot = commands.Bot(command_prefix="!")
+bot = commands.Bot(command_prefix="!", description=help_text,)
 
 @bot.event
 async def on_ready():
@@ -220,10 +234,10 @@ async def movers(ctx):
             description = mover["description"]
             quotes = mover["quotes"]
             symbolList = ""
+            message.add_field(name=title, inline=False)
             for quote in quotes:
                 symbol = quote["symbol"]
                 symbolList += f"{symbol}, " 
-            message.add_field(name=title, value=symbolList, inline=False)
         except:
             continue
     
