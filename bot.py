@@ -1,13 +1,15 @@
 # bot.py
 import os
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import http.client
 import re
 import json
 from typing import List,Dict
 import math
 from sys import exit
+import schedule
+import time
 
 help_text = """
 
@@ -165,12 +167,61 @@ def price_reply(symbols: list) -> Dict[str, str]:
         
     return dataMessages
 
+def get_movers():
+    message = {}
+    conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
+    url = f"/market/v2/get-movers?region=US&lang=en-US&start=0&count=25"
+    try:
+        conn.request("GET", url, headers=headers)
+        res = conn.getresponse()
+    except:
+        message = f"An error occured trying to retrive market movers data. Could not connect to the remote server."
+        return message
+
+    data = res.read()
+    jsonData = json.loads(data.decode())
+    try:
+        results = jsonData["finance"]["result"]
+    except:
+        message = f"An error occured trying to retrive market movers data."
+        return message
+    
+    message=discord.Embed(title="Market Movers")
+    for mover in results:
+        try:
+            title = mover["title"]
+            if "gainers" in title.lower():
+                title = title + ":chart_with_upwards_trend::rocket:"
+            elif "losers" in title.lower():
+                title = title + ":chart_with_downwards_trend: "
+            description = mover["description"]
+            quotes = mover["quotes"]
+            symbolList = ""
+            for quote in quotes:
+                symbol = quote["symbol"]
+                symbolList += f"{symbol}, " 
+            
+            message.add_field(name=title, value=symbolList, inline=False)
+
+        except:
+            continue
+
+    return message
+
 client = discord.Client()
 bot = commands.Bot(command_prefix="!", description=help_text,)
+
+doGetMoversUpdate = False
+def get_movers_schedule():
+    global doGetMoversUpdate
+    doGetMoversUpdate = True
+        
+schedule.every().day.at("17:00").do(get_movers_schedule)
 
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
+    scheduleTask.start()
 
 @bot.event
 async def on_message(message):
@@ -204,44 +255,22 @@ async def on_message(message):
 
 @bot.command()
 async def movers(ctx):
-    dataMessages = {}
-    conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
-    url = f"/market/v2/get-movers?region=US&lang=en-US&start=0&count=25"
-    try:
-        conn.request("GET", url, headers=headers)
-        res = conn.getresponse()
-    except:
-        message = f"An error occured trying to retrive market movers data. Could not connect to the remote server."
-        dataMessages[symbol] = message
-        return dataMessages
-
-    data = res.read()
-    jsonData = json.loads(data.decode())
-    message = {}
-    try:
-        results = jsonData["finance"]["result"]
-    except:
-        message = f"An error occured trying to retrive market movers data."
-    
-    message=discord.Embed(title="Market Movers")
-    for mover in results:
-        try:
-            title = mover["title"]
-            if "gainers" in title.lower():
-                title = title + ":chart_with_upwards_trend::rocket:"
-            elif "losers" in title.lower():
-                title = title + ":chart_with_downwards_trend: "
-            description = mover["description"]
-            quotes = mover["quotes"]
-            symbolList = ""
-            message.add_field(name=title, inline=False)
-            for quote in quotes:
-                symbol = quote["symbol"]
-                symbolList += f"{symbol}, " 
-        except:
-            continue
-    
+    message = get_movers()
     await ctx.send(embed = message)
     return
+
+@tasks.loop(minutes=1)
+async def scheduleTask():
+    schedule.run_pending()
+    global doGetMoversUpdate
+    if doGetMoversUpdate is True:
+        doGetMoversUpdate = False
+        movers = get_movers()
+        channels = bot.get_all_channels()
+        for channel in channels:
+            try:
+                await channel.send(embed = movers)
+            except:
+                continue
  
 bot.run(TOKEN)
