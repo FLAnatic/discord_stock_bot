@@ -10,6 +10,7 @@ import math
 from sys import exit
 import schedule
 import time
+import datetime
 
 help_text = """
 
@@ -265,12 +266,14 @@ async def scheduleTask():
     global doGetMoversUpdate
     if doGetMoversUpdate is True:
         doGetMoversUpdate = False
-        movers = get_movers()
-        channels = bot.get_all_channels()
-        for channel in channels:
-            try:
-                await channel.send(embed = movers)
-            except:
-                continue
+        weekno = datetime.datetime.today().weekday()
+        if weekno < 5:
+            movers = get_movers()
+            channels = bot.get_all_channels()
+            for channel in channels:
+                try:
+                    await channel.send(embed = movers)
+                except:
+                    continue
  
 bot.run(TOKEN)
