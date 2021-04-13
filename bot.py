@@ -57,6 +57,26 @@ def millify(n):
 
     return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
+def fetchSymbolData(symbol):
+    conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
+    headers = {
+        'x-rapidapi-key': RAPIDAPIKEY,
+        'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
+        }
+    #url = f"/market/v2/get-quotes?region=US&symbols={symbol}"
+    url = f"/stock/v2/get-summary?symbol={symbol}&region=US"
+    try:
+        conn.request("GET", url, headers=headers)
+        res = conn.getresponse()
+    except:
+        message = f"An error occured trying to retrive information for ${symbol}. Could not get a response from the remote server."
+        return NULL
+  
+    if(res.code == 200):
+        return res.read()
+    else:
+        return None
+
 def find_symbols(text: str) -> List[str]:
     SYMBOL_REGEX = "[$]([a-zA-Z-]{1,7})"
     return list(set(re.findall(SYMBOL_REGEX, text)))
@@ -64,108 +84,136 @@ def find_symbols(text: str) -> List[str]:
 def price_reply(symbols: list) -> Dict[str, str]:
     dataMessages = {}
     for symbol in symbols:
-        conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
-        headers = {
-            'x-rapidapi-key': RAPIDAPIKEY,
-            'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
-            }
-        url = f"/market/v2/get-quotes?region=US&symbols={symbol}"
-        #url = f"/stock/v2/get-summary?symbol={symbol}&region=US"
-        try:
-            conn.request("GET", url, headers=headers)
-            res = conn.getresponse()
-        except:
-            message = f"An error occured trying to retrive information for ${symbol}. Could not connect to the remote server."
+        data = fetchSymbolData(symbol)
+        if not len(data):
+            message = f"Could not find information for ${symbol}."
             dataMessages[symbol] = message
-            return dataMessages
+        else:
+            jsonData = json.loads(data.decode())
+            message = {}
+            try:
+                shortName = jsonData["quoteType"]["shortName"]
+                longName = jsonData["quoteType"]["longName"]
+                quoteType = jsonData["quoteType"]["quoteType"]
+                symbol = jsonData["quoteType"]["symbol"]
+                marketState =  jsonData["price"]["marketState"]
+                price = jsonData["price"]["regularMarketPrice"]["fmt"]
+                try:
+                    postMarketPrice = jsonData["price"]["postMarketPrice"]["fmt"]
+                    preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
+                except:
+                    postMarketPrice = price
+                    preMarketPrice = price
+                try:
+                    industry = jsonData["summaryProfile"]["industry"]
+                    sector = jsonData["summaryProfile"]["sector"]
+                except:
+                    industry = "N/A"
+                    sector = "N/A"
+                try:
+                    regularMarketDayLow = jsonData["price"]["regularMarketDayLow"]["fmt"]
+                    regularMarketDayHigh = jsonData["price"]["regularMarketDayHigh"]["fmt"]
+                    regMktDayRng = str(regularMarketDayLow) + " - " + str(regularMarketDayHigh)
+                except:
+                    regMktDayRng = "N/A"
+                
+                try:
+                    fiftyTwoWeekLow = jsonData["summaryDetail"]["fiftyTwoWeekLow"]["fmt"]
+                    fiftyTwoWeekHigh = jsonData["summaryDetail"]["fiftyTwoWeekHigh"]["fmt"]
+                    fiftyTwoWeekRange = str(fiftyTwoWeekLow) + " - " + str(fiftyTwoWeekHigh)
+                except:
+                    fiftyTwoWeekRange = "N/A"
+                try:
+                    enterpriseToEbitda = jsonData["defaultKeyStatistics"]["enterpriseToEbitda"]["fmt"]
+                except:
+                    enterpriseToEbitda = "N/A"
+                try:
+                    marketCap = jsonData["price"]["marketCap"]["fmt"]
+                except:
+                    marketCap = "N/A"
+                try:
+                    trailingPERaw = jsonData["summaryDetail"]["trailingPE"]["raw"]
+                    trailingPEFmt = jsonData["summaryDetail"]["trailingPE"]["fmt"]
+                    if trailingPERaw <= 15:
+                        peColor = ':green_circle:'
+                    else:
+                        peColor = ':yellow_circle:'
+                    trailingPE = trailingPEFmt + peColor
+                except:
+                    trailingPE = "N/A"
+                try:
+                    pegRatioRaw = jsonData["defaultKeyStatistics"]["pegRatio"]["raw"]
+                    pegRatioFmt = jsonData["defaultKeyStatistics"]["pegRatio"]["fmt"]
+                    if pegRatioRaw <= 1:
+                        pegColor = ':green_circle:'
+                    else:
+                        pegColor = ':yellow_circle:'
+                    pegRatio = pegRatioFmt + pegColor
+                except:
+                    pegRatio = "N/A"
+                try:
+                    priceToBookRaw = jsonData["defaultKeyStatistics"]["priceToBook"]["raw"]
+                    priceToBookFmt = jsonData["defaultKeyStatistics"]["priceToBook"]["fmt"]
+                    if priceToBookRaw <= 2:
+                        priceToBookColor = ':green_circle:'
+                    else:
+                        priceToBookColor = ':yellow_circle:'
+                    priceToBook = priceToBookFmt + priceToBookColor
+                except:
+                    priceToBook = "N/A"
+                try:
+                    
+                    priceToSalesRaw = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["raw"]
+                    priceToSalesFmt = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["fmt"]
+                    if priceToSalesRaw <= 4:
+                        priceToSalesColor = ':green_circle:'
+                    else:
+                        priceToSalesColor = ':yellow_circle:'
+                    priceToSales = priceToSalesFmt + priceToSalesColor
+                except:
+                    priceToSales = "N/A"
+                try:
+                    dividendRate = jsonData["summaryDetail"]["dividendRate"]["fmt"]
+                    dividendYield = jsonData["summaryDetail"]["dividendYield"]["fmt"]
+                except:
+                    dividendRate = "N/A"
+                    dividendYield = "N/A"
+                try:
+                    beta = jsonData["summaryDetail"]["beta"]["fmt"]
+                except:
+                    beta = "N/A"
 
-        data = res.read()
-        jsonData = json.loads(data.decode())
-        jsonDataError = jsonData['quoteResponse']['error']
-        message = {}
-        if jsonDataError == None:
-            jsonDataResult = jsonData['quoteResponse']['result']
-            if not len(jsonDataResult):
-                message = f"Could not find information for ${symbol}."
-                dataMessages[symbol] = message
-            else:
-                for tag in jsonDataResult:
-                    try:
-                        shortName = tag["shortName"]
-                        price = tag["regularMarketPrice"] 
-                        regMktDayRng = tag["regularMarketDayRange"]
-                        fiftyTwoWeekRange = tag["fiftyTwoWeekRange"]
-                        try:
-                            marketCap = millify(tag["marketCap"])
-                        except:
-                            marketCap = "N/A"
-                        try:
-                            trailingPE = tag["trailingPE"]
-                            if trailingPE <= 15:
-                                peColor = ':green_circle:' 
-                            else:
-                                peColor = ':yellow_circle:' 
-                            trailingPE = str(trailingPE) + peColor  
-                        except:
-                            trailingPE = "N/A"
-                        try:
-                            pegRatio = tag["pegRatio"]
-                            if pegRatio <= 1:
-                                pegColor = ':green_circle:'
-                            else:
-                                pegColor = ':yellow_circle:'
-                            pegRatio = str(pegRatio) + pegColor
-                        except:
-                            pegRatio = "N/A"
-                        try:
-                            priceToBook = tag["priceToBook"]
-                            if priceToBook <= 2:
-                                priceToBookColor = ':green_circle:'
-                            else:
-                                priceToBookColor = ':yellow_circle:'
-                            priceToBook = str(priceToBook) + priceToBookColor
-                        except:
-                            priceToBook = "N/A"
-                        try:
-                            priceToSales = tag["priceToSales"]
-                            if priceToSales <= 4:
-                                priceToSalesColor = ':green_circle:'
-                            else:
-                                priceToSalesColor = ':yellow_circle:'
-                            priceToSales = str(priceToSales) + priceToSalesColor
-                        except:
-                            priceToSales = "N/A"
-                        try:
-                            dividendRate = tag["dividendRate"]
-                            dividendYield = tag["dividendYield"]
-                        except:
-                            dividendRate  = "N/A"
-                            dividendYield = "N/A"
+                print(longName, price)
+                description = f"The market price of [{symbol}](https://finance.yahoo.com/quote/{symbol}) is ${price}"
+                if marketState == "POST":
+                    description = f"The post-market price of [{symbol}](https://finance.yahoo.com/quote/{symbol}) is ${postMarketPrice}"
+                elif marketState == "PRE":
+                    description = f"The pre-market price of [{symbol}](https://finance.yahoo.com/quote/{symbol}) is ${preMarketPrice}"
+                message = discord.Embed(title=str(longName).upper(), url=f"https://finance.yahoo.com/quote/{symbol}",
+                                        description=description,
+                                        color=0xFF5733)
+                message.add_field(name="Quote Type", value=quoteType, inline=True)
+                message.add_field(name="Industry", value=industry, inline=True)
+                message.add_field(name="Sector", value=sector, inline=True)
+                message.add_field(name="Market Cap", value=marketCap, inline=True)
+                message.add_field(name="Enterprise to EBITDA", value=enterpriseToEbitda, inline=True)
+                message.add_field(name="Regular Market Day Range", value=regMktDayRng, inline=True)
+                message.add_field(name="Last 52 Week Range", value=fiftyTwoWeekRange, inline=True)
+                message.add_field(name="PE Ratio (TTM)", value=trailingPE, inline=True)
+                message.add_field(name="PEG Ratio", value=pegRatio, inline=True)
+                message.add_field(name="Price to Book", value=priceToBook, inline=True)
+                message.add_field(name="Price to Sales", value=priceToSales, inline=True)
+                message.add_field(name="Enterprise Value/EBITDA",value=enterpriseToEbitda, inline=True)
+                message.add_field(name="beta",value=beta, inline=True)
 
-                        print(shortName,price)
-                        message=discord.Embed(title=str(shortName).upper(), url=f"https://finance.yahoo.com/quote/{symbol}", 
-                                              description=f"The current price of [{symbol}](https://finance.yahoo.com/quote/{symbol}) is ${price}", 
-                                              color=0xFF5733)
-                        message.add_field(name="Market Cap", value=marketCap, inline=True)
-                        message.add_field(name="Regular Market Day Range", value=regMktDayRng, inline=True)
-                        message.add_field(name="Last 52 Week Range", value=fiftyTwoWeekRange, inline=True)
-                        message.add_field(name="PE Ratio (TTM)", value=trailingPE, inline=True)
-                        message.add_field(name="PEG Ratio", value=pegRatio, inline=True)
-                        message.add_field(name="Price to Book", value=priceToBook, inline=True)
-                        message.add_field(name="Price to Sales", value=priceToSales, inline=True)
-                        rateAndYield = str(dividendRate) + " (" + str(dividendYield) + "%)"
-                        message.add_field(name="Dividend Rate and Yield", value=rateAndYield , inline=True)
-                        message.add_field(name="MorningStar Key Ratios", value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
-                        #message = f"The current stock price of [{shortName}](https://finance.yahoo.com/quote/{symbol}) is ${price}"
-                    except:
-                        message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
+                rateAndYield = str(dividendRate) + " (" + str(dividendYield) + ")"
+                message.add_field(name="Dividend Rate and Yield", value=rateAndYield, inline=True)
+                message.add_field(name="MorningStar Key Ratios", value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
+            except:
+                message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
 
-                    dataMessages[symbol] = message
-        else: 
-            message = f"An error occured trying to retrive information for ${symbol}."
             dataMessages[symbol] = message
 
-        
     return dataMessages
 
 def get_movers():
