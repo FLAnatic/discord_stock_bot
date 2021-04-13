@@ -196,7 +196,6 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 message.add_field(name="Industry", value=industry, inline=True)
                 message.add_field(name="Sector", value=sector, inline=True)
                 message.add_field(name="Market Cap", value=marketCap, inline=True)
-                message.add_field(name="Enterprise to EBITDA", value=enterpriseToEbitda, inline=True)
                 message.add_field(name="Regular Market Day Range", value=regMktDayRng, inline=True)
                 message.add_field(name="Last 52 Week Range", value=fiftyTwoWeekRange, inline=True)
                 message.add_field(name="PE Ratio (TTM)", value=trailingPE, inline=True)
