@@ -78,7 +78,7 @@ def fetchSymbolData(symbol):
         return None
 
 def find_symbols(text: str) -> List[str]:
-    SYMBOL_REGEX = "[$]([a-zA-Z-]{1,7})"
+    SYMBOL_REGEX = "[$]([a-zA-Z-]{1,8})"
     return list(set(re.findall(SYMBOL_REGEX, text)))
 
 def price_reply(symbols: list) -> Dict[str, str]:
