@@ -93,7 +93,10 @@ def price_reply(symbols: list) -> Dict[str, str]:
             message = {}
             try:
                 shortName = jsonData["quoteType"]["shortName"]
-                longName = jsonData["quoteType"]["longName"]
+                try:
+                    longName = jsonData["quoteType"]["longName"]
+                except:
+                    longName = shortName
                 quoteType = jsonData["quoteType"]["quoteType"]
                 symbol = jsonData["quoteType"]["symbol"]
                 marketState =  jsonData["price"]["marketState"]
