@@ -186,12 +186,26 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 except:
                     beta = "N/A"
 
+                insiderPurchases = "N/A"
+                try:
+                    buyInfoShares = jsonData["netSharePurchaseActivity"]["buyInfoShares"]["fmt"]
+                    buyInfoCount = jsonData["netSharePurchaseActivity"]["buyInfoCount"]["fmt"]
+                    sellInfoShares = jsonData["netSharePurchaseActivity"]["sellInfoShares"]["fmt"]
+                    sellInfoCount = jsonData["netSharePurchaseActivity"]["sellInfoCount"]["fmt"]
+                    insiderPurchases = (f"Purchases: {buyInfoShares} shares in {buyInfoCount} transactions.\r\n" +
+                                       f"Sales: {sellInfoShares} shares in {sellInfoCount} transactions.")
+                except:
+                    buyInfoShares = "N/A"
+                    buyInfoCount = "N/A"
+                    sellInfoShares = "N/A"
+                    sellInfoCount = "N/A"
+
                 print(longName, price)
-                description = f"The market price of [{symbol}](https://finance.yahoo.com/quote/{symbol}) is ${price}"
+                description = f"The market price of {symbol} is ${price}"
                 if marketState == "POST":
-                    description = f"The post-market price of [{symbol}](https://finance.yahoo.com/quote/{symbol}) is ${postMarketPrice}"
+                    description = f"The post-market price of {symbol} is ${postMarketPrice}"
                 elif marketState == "PRE":
-                    description = f"The pre-market price of [{symbol}](https://finance.yahoo.com/quote/{symbol}) is ${preMarketPrice}"
+                    description = f"The pre-market price of {symbol} is ${preMarketPrice}"
                 message = discord.Embed(title=str(longName).upper(), url=f"https://finance.yahoo.com/quote/{symbol}",
                                         description=description,
                                         color=0xFF5733)
@@ -210,6 +224,8 @@ def price_reply(symbols: list) -> Dict[str, str]:
 
                 rateAndYield = str(dividendRate) + " (" + str(dividendYield) + ")"
                 message.add_field(name="Dividend Rate and Yield", value=rateAndYield, inline=True)
+
+                message.add_field(name="Insider Purchases Last 6 Months",value=insiderPurchases, inline=True)
                 message.add_field(name="MorningStar Key Ratios", value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
             except:
                 message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
