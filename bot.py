@@ -11,7 +11,12 @@ from sys import exit
 import schedule
 import time
 import datetime
-
+import pandas as pd
+import mplfinance as mpf
+from datetime import datetime
+import seaborn as sns
+from matplotlib import rcParams
+import matplotlib.pyplot as plt
 help_text = """
 
 **Commands**
@@ -341,5 +346,95 @@ async def scheduleTask():
                     await channel.send(embed = movers)
                 except:
                     continue
- 
+
+def fetchChartData(symbol):
+    conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
+    headers = {
+        'x-rapidapi-key': RAPIDAPIKEY,
+        'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
+        }
+    #url = f"/market/v2/get-quotes?region=US&symbols={symbol}"
+    url = f"/stock/v2/get-chart?interval=1d&symbol={symbol}&range=6mo&region=US"
+    try:
+        conn.request("GET", url, headers=headers)
+        res = conn.getresponse()
+    except:
+        message = f"An error occured trying to retrive chart information for ${symbol}. Could not get a response from the remote server."
+        return NULL
+  
+    if(res.code == 200):
+        return res.read()
+    else:
+        return None
+
+def parseTimestamp(inputdata):
+    timestamplist = []
+    
+    timestamplist.extend(inputdata["chart"]["result"][0]["timestamp"])
+    timestamplist.extend(inputdata["chart"]["result"][0]["timestamp"])
+    
+    calendertime = []
+    
+    for ts in timestamplist:
+        dt = datetime.fromtimestamp(ts)
+        calendertime.append(dt.strftime("%m/%d/%Y"))
+    
+    return calendertime
+
+def parseValues(inputdata):
+    valueList = []
+    
+    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["open"])
+    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["close"])
+    
+    return valueList
+
+def attachEvents(inputdata):
+    eventlist = []
+    
+    for i in range(0,len(inputdata["chart"]["result"][0]["timestamp"])):
+        eventlist.append("open")  
+    
+    for i in range(0,len(inputdata["chart"]["result"][0]["timestamp"])):
+        eventlist.append("close")
+    
+    return eventlist
+
+@bot.command()
+async def chart(ctx, sym: str):
+    symbol = find_symbols(sym)[0]
+    chartData = fetchChartData(symbol)
+    if not len(chartData):
+            message = f"Could not find char information for ${symbol}."
+            dataMessages[symbol] = message
+            await ctx.send(embed = message)
+            return
+    chartData = json.loads(chartData.decode())
+    inputdata = {}
+    inputdata["Timestamp"] = parseTimestamp(chartData)
+    inputdata["Values"] = parseValues(chartData)
+    inputdata["Events"] = attachEvents(chartData)
+    df = pd.DataFrame(inputdata)
+    sns.reset_defaults()
+    sns.set(style="darkgrid")
+    rcParams = {}
+    rcParams['figure.figsize'] = 13,5
+    rcParams['figure.subplot.bottom'] = 0.2
+    ax = sns.lineplot(x="Timestamp", y="Values", hue="Events",dashes=False, markers=True, data=df, sort=False)
+    caption=f"{symbol} 6 month chart."
+    ax.set_title('Symbol: ' + caption)  
+    plt.xticks(rotation=45, horizontalalignment='right', fontweight='light', fontsize='xx-small')
+    filename = "chart.png"
+    try:
+        os.remove(filename)
+    except:
+        pass
+    plt.savefig(filename)
+    plt.clf()
+    plt.cla()
+    plt.close()
+    await ctx.send(file=discord.File(filename))
+
+    return
+
 bot.run(TOKEN)
