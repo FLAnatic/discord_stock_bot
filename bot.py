@@ -137,7 +137,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 try:
                     trailingPERaw = jsonData["summaryDetail"]["trailingPE"]["raw"]
                     trailingPEFmt = jsonData["summaryDetail"]["trailingPE"]["fmt"]
-                    if trailingPERaw <= 15:
+                    if 0 <= trailingPERaw <= 15:
                         peColor = ':green_circle:'
                     else:
                         peColor = ':yellow_circle:'
@@ -147,7 +147,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 try:
                     pegRatioRaw = jsonData["defaultKeyStatistics"]["pegRatio"]["raw"]
                     pegRatioFmt = jsonData["defaultKeyStatistics"]["pegRatio"]["fmt"]
-                    if pegRatioRaw <= 1:
+                    if 0 <= pegRatioRaw <= 1:
                         pegColor = ':green_circle:'
                     else:
                         pegColor = ':yellow_circle:'
@@ -157,7 +157,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 try:
                     priceToBookRaw = jsonData["defaultKeyStatistics"]["priceToBook"]["raw"]
                     priceToBookFmt = jsonData["defaultKeyStatistics"]["priceToBook"]["fmt"]
-                    if priceToBookRaw <= 2:
+                    if 0 <= priceToBookRaw <= 2:
                         priceToBookColor = ':green_circle:'
                     else:
                         priceToBookColor = ':yellow_circle:'
@@ -225,7 +225,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 rateAndYield = str(dividendRate) + " (" + str(dividendYield) + ")"
                 message.add_field(name="Dividend Rate and Yield", value=rateAndYield, inline=True)
 
-                message.add_field(name="Insider Purchases Last 6 Months",value=insiderPurchases, inline=True)
+                #message.add_field(name="Insider Purchases Last 6 Months",value=insiderPurchases, inline=True)
                 message.add_field(name="MorningStar Key Ratios", value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
             except:
                 message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
