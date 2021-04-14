@@ -225,7 +225,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 rateAndYield = str(dividendRate) + " (" + str(dividendYield) + ")"
                 message.add_field(name="Dividend Rate and Yield", value=rateAndYield, inline=True)
 
-                #message.add_field(name="Insider Purchases Last 6 Months",value=insiderPurchases, inline=True)
+                message.add_field(name="Insider info",value=f"http://www.openinsider.com/{symbol}", inline=False)
                 message.add_field(name="MorningStar Key Ratios", value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
             except:
                 message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
