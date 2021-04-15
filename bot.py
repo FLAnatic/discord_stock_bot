@@ -13,7 +13,6 @@ import time
 import datetime
 import pandas as pd
 import mplfinance as mpf
-from datetime import datetime
 import seaborn as sns
 from matplotlib import rcParams
 import matplotlib.pyplot as plt
