@@ -410,7 +410,7 @@ def parseTimestamp(inputdata):
     calendertime = []
     
     for ts in timestamplist:
-        dt = datetime.fromtimestamp(ts)
+        dt = datetime.datetime.fromtimestamp(ts)
         calendertime.append(dt.strftime("%m/%d/%Y"))
     
     return calendertime
