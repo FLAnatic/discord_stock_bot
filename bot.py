@@ -482,7 +482,17 @@ async def rand(ctx):
     if not stockListLen:
         message = f"I don't have a list of stocks to pick at random.  Make sure I have a .csv from available to read from: https://www.nasdaq.com/market-activity/stocks/screener"
         return
-    randomPick = random.randint(0, stockListLen-1)   
+    try:   
+        while True:
+            randomPick = random.randint(0, stockListLen-1)
+            symbol = stocks.iloc[randomPick].name
+            if '^' in symbol:
+                continue
+            else:
+                break
+    except:
+        message = f"I had a problem getting a random stock from the list."
+        return  
     try: 
         symbol = stocks.iloc[randomPick].name
         for reply in price_reply([symbol]).items():
@@ -490,7 +500,7 @@ async def rand(ctx):
                 await ctx.send(reply[1])
             else:
                 embed = reply[1]
-                embed.set_footer(text="Random stock generate for: {}. Chosen from a list of {} symbols.".format(ctx.author.display_name,stockListLen))
+                embed.set_footer(text="Random stock picked for: {}. Chosen from a list of {} symbols.".format(ctx.author.display_name,stockListLen))
                 await ctx.send(embed = embed)
     except:
         message = f"I wasn't able to get a symbol name from my list."
