@@ -17,11 +17,15 @@ from datetime import datetime
 import seaborn as sns
 from matplotlib import rcParams
 import matplotlib.pyplot as plt
+import random
 help_text = """
 
 **Commands**
-    - !movers - Returns the top 25 gainers,losers and volume stocks of the day.
-    - !help   - Display this help message you are reading
+    ! is the prefix for all bot commands.
+    !movers
+    !chart
+    !random
+    !help
 **Inline Features**
     The bot looks at every message in the chat room it is in for stock symbols. Symbols start with a
     `$` followed by the stock symbol. For example: $gme will return data for Gamestop Corp.
@@ -52,6 +56,19 @@ headers = {
     'x-rapidapi-key': RAPIDAPIKEY,
     'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
 }
+
+chartsFolder = r'charts' 
+if not os.path.exists(chartsFolder):
+    os.makedirs(chartsFolder)
+
+# file generated here : https://www.nasdaq.com/market-activity/stocks/screener
+stockListFileName = 'nasdaq_screener.csv'
+try:
+    stocks = pd.read_csv('nasdaq_screener.csv', index_col=0)
+    stockListLen = len(stocks.index)
+except:
+    stockListLen = 0
+    print("Could not open/read stock list csv file.")
 
 millnames = ['','Thousand','M',' B',' T']
 
@@ -325,8 +342,21 @@ async def on_message(message):
                 #await message.channel.send(reply[1])
             return
 
+def CleanUpSavedCharts():
+    """delete all saved charts """
+    for filename in os.listdir(chartsFolder):
+        file_path = os.path.join(chartsFolder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))    
+
 @bot.command()
 async def movers(ctx):
+    """Provides a list of the days top 25 gainers, losers and most active."""
     message = get_movers()
     await ctx.send(embed = message)
     return
@@ -346,6 +376,8 @@ async def scheduleTask():
                     await channel.send(embed = movers)
                 except:
                     continue
+
+            CleanUpSavedCharts()
 
 def fetchChartData(symbol):
     conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
@@ -402,39 +434,64 @@ def attachEvents(inputdata):
 
 @bot.command()
 async def chart(ctx, sym: str):
-    symbol = find_symbols(sym)[0]
-    chartData = fetchChartData(symbol)
-    if not len(chartData):
-            message = f"Could not find char information for ${symbol}."
-            dataMessages[symbol] = message
-            await ctx.send(embed = message)
-            return
-    chartData = json.loads(chartData.decode())
-    inputdata = {}
-    inputdata["Timestamp"] = parseTimestamp(chartData)
-    inputdata["Values"] = parseValues(chartData)
-    inputdata["Events"] = attachEvents(chartData)
-    df = pd.DataFrame(inputdata)
-    sns.reset_defaults()
-    sns.set(style="darkgrid")
-    rcParams = {}
-    rcParams['figure.figsize'] = 13,5
-    rcParams['figure.subplot.bottom'] = 0.2
-    ax = sns.lineplot(x="Timestamp", y="Values", hue="Events",dashes=False, markers=True, data=df, sort=False)
-    caption=f"{symbol} 6 month chart."
-    ax.set_title('Symbol: ' + caption)  
-    plt.xticks(rotation=45, horizontalalignment='right', fontweight='light', fontsize='xx-small')
-    filename = "chart.png"
+    """Generate 6 month chart for request stock."""
     try:
-        os.remove(filename)
+        symbol = find_symbols(sym)[0]
     except:
-        pass
-    plt.savefig(filename)
-    plt.clf()
-    plt.cla()
-    plt.close()
-    await ctx.send(file=discord.File(filename))
+        message = f"Could not find a valid symbol to look up."
+        return
+    filename = str(symbol) +".png"
+    filePath = chartsFolder + '/' + filename
+    if not os.path.isfile(filePath):
+        #build the chart and save it
+        chartData = fetchChartData(symbol)
+        if not len(chartData):
+                message = f"Could not find char information for ${symbol}."
+                dataMessages[symbol] = message
+                await ctx.send(embed = message)
+                return
+        chartData = json.loads(chartData.decode())
+        inputdata = {}
+        inputdata["Timestamp"] = parseTimestamp(chartData)
+        inputdata["Values"] = parseValues(chartData)
+        inputdata["Events"] = attachEvents(chartData)
+        df = pd.DataFrame(inputdata)
+        sns.reset_defaults()
+        sns.set(style="darkgrid")
+        rcParams = {}
+        rcParams['figure.figsize'] = 13,5
+        rcParams['figure.subplot.bottom'] = 0.2
+        ax = sns.lineplot(x="Timestamp", y="Values", hue="Events",dashes=False, markers=True, data=df, sort=False)
+        caption=f"{symbol} 6 month chart."
+        ax.set_title('Symbol: ' + caption)  
+        plt.xticks(rotation=45, horizontalalignment='right', fontweight='light', fontsize='xx-small')
+        plt.savefig(filePath)
+        plt.clf()
+        plt.cla()
+        plt.close()
+
+    await ctx.send(file=discord.File(filePath))
 
     return
+
+@bot.command()
+async def rand(ctx):
+    """Get a random stock ticker."""
+    if not stockListLen:
+        message = f"I don't have a list of stocks to pick at random.  Make sure I have a .csv from available to read from: https://www.nasdaq.com/market-activity/stocks/screener"
+        return
+    randomPick = random.randint(0, stockListLen-1)   
+    try: 
+        symbol = stocks.iloc[randomPick].name
+        for reply in price_reply([symbol]).items():
+            if isinstance(reply[1],str):
+                await ctx.send(reply[1])
+            else:
+                embed = reply[1]
+                embed.set_footer(text="Random stock generate for: {}. Chosen from a list of {} symbols.".format(ctx.author.display_name,stockListLen))
+                await ctx.send(embed = embed)
+    except:
+        message = f"I wasn't able to get a symbol name from my list."
+        return
 
 bot.run(TOKEN)
