@@ -329,6 +329,9 @@ async def on_message(message):
     if "covid" in message.content:
         await ctx.reply('Please maintain proper social distancing for all stock requests!')
 
+    if "moon" in message.content:
+        await ctx.reply(":rocket:")
+
     if "$" in message.content:
         symbols = find_symbols(message.content)
         if symbols:
