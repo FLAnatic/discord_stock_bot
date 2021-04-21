@@ -60,6 +60,8 @@ chartsFolder = r'charts'
 if not os.path.exists(chartsFolder):
     os.makedirs(chartsFolder)
 
+imagesFolder = r'images' 
+
 # file generated here : https://www.nasdaq.com/market-activity/stocks/screener
 stockListFileName = 'nasdaq_screener.csv'
 try:
@@ -321,6 +323,10 @@ async def on_message(message):
         await bot.process_commands(message)
         return
 
+    if ("doge" in message.content) or ("DOGE" in message.content):
+        file_path = os.path.join(imagesFolder, "dogecoin.png")
+        if os.path.isfile(file_path):
+            await ctx.reply(file=discord.File(file_path))  
 
     if "gme" in message.content:
         await ctx.reply("💎🙌")
