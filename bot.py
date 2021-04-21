@@ -454,12 +454,15 @@ async def chart(ctx, sym: str):
         #build the chart and save it
         chartData = fetchChartData(symbol)
         if not len(chartData):
-                message = f"Could not find char information for ${symbol}."
-                dataMessages[symbol] = message
-                await ctx.send(embed = message)
+                message = f"Could not find chart information for ${symbol}."
+                await ctx.send(message)
                 return
         chartData = json.loads(chartData.decode())
         inputdata = {}
+        if not chartData["chart"]["result"]:
+                message = f"Could not find chart information for ${symbol}."
+                await ctx.send(message)
+                return
         inputdata["Timestamp"] = parseTimestamp(chartData)
         inputdata["Values"] = parseValues(chartData)
         inputdata["Events"] = attachEvents(chartData)
