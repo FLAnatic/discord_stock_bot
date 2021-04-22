@@ -162,6 +162,8 @@ def price_reply(symbols: list) -> Dict[str, str]:
                     trailingPEFmt = jsonData["summaryDetail"]["trailingPE"]["fmt"]
                     if 0 <= trailingPERaw <= 15:
                         peColor = ':green_circle:'
+                    elif trailingPERaw < 0 or trailingPERaw > 50:
+                        peColor = 'red_circle'
                     else:
                         peColor = ':yellow_circle:'
                     trailingPE = trailingPEFmt + peColor
@@ -172,6 +174,8 @@ def price_reply(symbols: list) -> Dict[str, str]:
                     pegRatioFmt = jsonData["defaultKeyStatistics"]["pegRatio"]["fmt"]
                     if 0 <= pegRatioRaw <= 1:
                         pegColor = ':green_circle:'
+                    elif pegRatioRaw < 0 or pegRatioRaw > 2:
+                         pegColor = ':red_circle:'
                     else:
                         pegColor = ':yellow_circle:'
                     pegRatio = pegRatioFmt + pegColor
@@ -182,6 +186,8 @@ def price_reply(symbols: list) -> Dict[str, str]:
                     priceToBookFmt = jsonData["defaultKeyStatistics"]["priceToBook"]["fmt"]
                     if 0 <= priceToBookRaw <= 2:
                         priceToBookColor = ':green_circle:'
+                    elif priceToBookRaw < 0 or priceToBookRaw > 5:
+                        priceToBookColor = ':red_circle:'
                     else:
                         priceToBookColor = ':yellow_circle:'
                     priceToBook = priceToBookFmt + priceToBookColor
@@ -191,8 +197,10 @@ def price_reply(symbols: list) -> Dict[str, str]:
                     
                     priceToSalesRaw = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["raw"]
                     priceToSalesFmt = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["fmt"]
-                    if priceToSalesRaw <= 4:
+                    if 0 <= priceToSalesRaw <= 2:
                         priceToSalesColor = ':green_circle:'
+                    elif priceToSalesRaw < 0 or priceToSalesRaw > 10:
+                        priceToSalesColor = ':red_circle:'
                     else:
                         priceToSalesColor = ':yellow_circle:'
                     priceToSales = priceToSalesFmt + priceToSalesColor
@@ -215,13 +223,22 @@ def price_reply(symbols: list) -> Dict[str, str]:
                     buyInfoCount = jsonData["netSharePurchaseActivity"]["buyInfoCount"]["fmt"]
                     sellInfoShares = jsonData["netSharePurchaseActivity"]["sellInfoShares"]["fmt"]
                     sellInfoCount = jsonData["netSharePurchaseActivity"]["sellInfoCount"]["fmt"]
+                    insiderPercentHeld = jsonData["majorHoldersBreakdown"]["insidersPercentHeld"]["fmt"]
+                    institutionPercentHeld = jsonData["majorHoldersBreakdown"]["institutionsPercentHeld"]["fmt"]
                     insiderPurchases = (f"Purchases: {buyInfoShares} shares in {buyInfoCount} transactions.\r\n" +
                                        f"Sales: {sellInfoShares} shares in {sellInfoCount} transactions.")
+                    insiderHolding = (f"% Held by Insiders: {insiderPercentHeld}.\r\n" +
+                                      f"% Held by Institutions : {institutionPercentHeld}.\r\n" +
+                                      f"http://www.openinsider.com/{symbol}")
                 except:
                     buyInfoShares = "N/A"
                     buyInfoCount = "N/A"
                     sellInfoShares = "N/A"
                     sellInfoCount = "N/A"
+                    insiderPercentHeld = "N/A"
+                    institutionPercentHeld = "N/A"
+                    insiderPurchases = f"http://www.openinsider.com/{symbol}"
+                    insiderHolding = f"http://www.openinsider.com/{symbol}"
 
                 print(longName, price)
                 description = f"The market price of {symbol} is ${price}"
@@ -248,7 +265,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 rateAndYield = str(dividendRate) + " (" + str(dividendYield) + ")"
                 message.add_field(name="Dividend Rate and Yield", value=rateAndYield, inline=True)
 
-                message.add_field(name="Insider info",value=f"http://www.openinsider.com/{symbol}", inline=False)
+                message.add_field(name="Insider info",value=insiderHolding, inline=False)
                 message.add_field(name="MorningStar Key Ratios", value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
             except:
                 message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
