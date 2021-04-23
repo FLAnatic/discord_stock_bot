@@ -163,7 +163,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                     if 0 <= trailingPERaw <= 15:
                         peColor = ':green_circle:'
                     elif trailingPERaw < 0 or trailingPERaw > 50:
-                        peColor = :red_circle:
+                        peColor = ':red_circle:'
                     else:
                         peColor = ':yellow_circle:'
                     trailingPE = trailingPEFmt + peColor
