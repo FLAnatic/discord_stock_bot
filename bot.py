@@ -243,7 +243,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 except:
                     institutionPercentHeld = "N/A"
                 try:
-                    shortPercentOfFloat = jsonData["defaultKeyStatistics"]["shortPercentOfFloat"]["raw"]
+                    shortPercentOfFloat = jsonData["defaultKeyStatistics"]["shortPercentOfFloat"]["fmt"]
                 except:
                     shortPercentOfFloat = "N/A"  
 
