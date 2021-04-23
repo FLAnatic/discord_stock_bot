@@ -220,25 +220,40 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 insiderPurchases = "N/A"
                 try:
                     buyInfoShares = jsonData["netSharePurchaseActivity"]["buyInfoShares"]["fmt"]
-                    buyInfoCount = jsonData["netSharePurchaseActivity"]["buyInfoCount"]["fmt"]
-                    sellInfoShares = jsonData["netSharePurchaseActivity"]["sellInfoShares"]["fmt"]
-                    sellInfoCount = jsonData["netSharePurchaseActivity"]["sellInfoCount"]["fmt"]
-                    insiderPercentHeld = jsonData["majorHoldersBreakdown"]["insidersPercentHeld"]["fmt"]
-                    institutionPercentHeld = jsonData["majorHoldersBreakdown"]["institutionsPercentHeld"]["fmt"]
-                    insiderPurchases = (f"Purchases: {buyInfoShares} shares in {buyInfoCount} transactions.\r\n" +
-                                       f"Sales: {sellInfoShares} shares in {sellInfoCount} transactions.")
-                    insiderHolding = (f"% Held by Insiders: {insiderPercentHeld}.\r\n" +
-                                      f"% Held by Institutions : {institutionPercentHeld}.\r\n" +
-                                      f"http://www.openinsider.com/{symbol}")
                 except:
                     buyInfoShares = "N/A"
+                try:
+                    buyInfoCount = jsonData["netSharePurchaseActivity"]["buyInfoCount"]["fmt"]
+                except:
                     buyInfoCount = "N/A"
+                try:
+                    sellInfoShares = jsonData["netSharePurchaseActivity"]["sellInfoShares"]["fmt"]
+                except:
                     sellInfoShares = "N/A"
+                try:
+                    sellInfoCount = jsonData["netSharePurchaseActivity"]["sellInfoCount"]["fmt"]
+                except:
                     sellInfoCount = "N/A"
+                try:
+                    insiderPercentHeld = jsonData["majorHoldersBreakdown"]["insidersPercentHeld"]["fmt"]
+                except:
                     insiderPercentHeld = "N/A"
+                try:
+                    institutionPercentHeld = jsonData["majorHoldersBreakdown"]["institutionsPercentHeld"]["fmt"]
+                except:
                     institutionPercentHeld = "N/A"
-                    insiderPurchases = f"http://www.openinsider.com/{symbol}"
-                    insiderHolding = f"http://www.openinsider.com/{symbol}"
+                try:
+                    shortPercentOfFloat = jsonData["defaultKeyStatistics"]["shortPercentOfFloat"]["raw"]
+                except:
+                    shortPercentOfFloat = "N/A"  
+
+                insiderPurchases = (f"Purchases: {buyInfoShares} shares in {buyInfoCount} transactions.\r\n" +
+                                    f"Sales: {sellInfoShares} shares in {sellInfoCount} transactions.")
+                insiderHolding = (f"% Held by Insiders: {insiderPercentHeld}.\r\n" +
+                                  f"% Held by Institutions: {institutionPercentHeld}.\r\n" +
+                                  f"Short % of Float: {shortPercentOfFloat}.\r\n"
+                                  f"http://www.openinsider.com/{symbol}")
+
 
                 print(longName, price)
                 description = f"The market price of {symbol} is ${price}"
@@ -265,7 +280,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 rateAndYield = str(dividendRate) + " (" + str(dividendYield) + ")"
                 message.add_field(name="Dividend Rate and Yield", value=rateAndYield, inline=True)
 
-                message.add_field(name="Insider info",value=insiderHolding, inline=False)
+                message.add_field(name="Share Statistics",value=insiderHolding, inline=False)
                 message.add_field(name="MorningStar Key Ratios", value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
             except:
                 message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
