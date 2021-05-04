@@ -355,18 +355,18 @@ async def on_message(message):
         await bot.process_commands(message)
         return
 
-    if ("doge" in message.content) or ("DOGE" in message.content):
+    if "doge" in message.content.lower():
         file_path = os.path.join(imagesFolder, "dogecoin.png")
         if os.path.isfile(file_path):
             await ctx.reply(file=discord.File(file_path))  
 
-    if "gme" in message.content:
+    if "gme" in message.content.lower():
         await ctx.reply("💎🙌")
 
-    if "covid" in message.content:
+    if "covid" in message.content.lower():
         await ctx.reply('Please maintain proper social distancing for all stock requests!')
 
-    if "moon" in message.content:
+    if "moon" in message.content.lower():
         await ctx.reply(":rocket:")
 
     if "$" in message.content:
