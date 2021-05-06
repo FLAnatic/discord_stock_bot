@@ -17,6 +17,9 @@ import seaborn as sns
 from matplotlib import rcParams
 import matplotlib.pyplot as plt
 import random
+
+testing = False
+
 help_text = """
 
 **Commands**
@@ -350,6 +353,11 @@ async def on_message(message):
     if message.author.id == bot.user.id:
         return
     
+    if (testing == True) and (message.channel.name != "testing"):
+        return
+    if (testing == False) and (message.channel.name == "testing"):
+        return
+
     ctx = await bot.get_context(message)
     if message.content.startswith("!"):
         await bot.process_commands(message)
@@ -413,7 +421,12 @@ async def scheduleTask():
             channels = bot.get_all_channels()
             for channel in channels:
                 try:
-                    await channel.send(embed = movers)
+                    if (testing == True) and (message.channel.name == "testing"):
+                        await channel.send(embed = movers)
+                    elif (testing == False) and (message.channel.name != "testing"):
+                        await channel.send(embed = movers)
+                    else:
+                        await channel.send(embed = movers)
                 except:
                     continue
 
