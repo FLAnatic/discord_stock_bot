@@ -486,66 +486,80 @@ def attachEvents(inputdata):
 @bot.command()
 async def chart(ctx, sym: str):
     """Generate 3 month chart for request stock."""
-    try:
-        symbol = find_symbols(sym)[0]
-    except:
-        message = f"Could not find a valid symbol to look up."
-        return
-    filename = str(symbol).lower() +".png"
-    filePath = chartsFolder + '/' + filename
-    if not os.path.isfile(filePath):
-        #build the chart and save it
-        chartData = fetchChartData(symbol,"1d","3mo")
-        if not len(chartData):
-                message = f"Could not find chart information for ${symbol}."
-                await ctx.send(message)
-                return
-        chartData = json.loads(chartData.decode())
-        inputdata = {}
-        if not chartData["chart"]["result"]:
-                message = f"Could not find chart information for ${symbol}."
-                await ctx.send(message)
-                return
+    async with ctx.typing():
         try:
-            inputdata["DateTime"] = parseTimestamp(chartData)
-            inputdata["Open"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["open"]
-            inputdata["Close"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["close"]
-            inputdata["Volume"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["volume"]
-            inputdata["High"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["high"]
-            inputdata["Low"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["low"]
-            inputdata["Adj Close"] = chartData["chart"]["result"][0]["indicators"]["adjclose"][0]["adjclose"]
-
-            df = pd.DataFrame(inputdata)
-            df['Datetime'] = pd.to_datetime(inputdata["DateTime"], format='%Y-%m-%d %H:%M:%S')
-            df = df.set_index(pd.DatetimeIndex(df['Datetime']))
-            exp8 = df['Close'].ewm(span=8, adjust=False).mean()
-            exp17 = df['Close'].ewm(span=17, adjust=False).mean()
-            macd = exp8 - exp17
-            signal    = macd.ewm(span=9, adjust=False).mean()
-            histogram = macd - signal
-            macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD(8,17,9)'),
-                        mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True),
-                        mpf.make_addplot(signal,panel=1,color='b',secondary_y=True),
-            ]
-        
-            mpf.plot(
-                df,
-                type="candle",
-                addplot=macdPlot,
-                mav=10,
-                title=f"\n{symbol.upper()}",
-                volume=True,
-                volume_panel=2,
-                panel_ratios=(4,2,1),
-                style="default",
-                figscale=1.1,
-                figratio=(8,5),
-                savefig=dict(fname=filePath, dpi=400, bbox_inches="tight")
-            )
-            await ctx.send(file=discord.File(filePath))
+            symbol = find_symbols(sym)[0]
         except:
-            message = f"Failed to generate chart data for ${symbol}."
-            await ctx.send(message)
+            message = f"Could not find a valid symbol to look up."
+            return
+        filename = str(symbol).lower() +".png"
+        filePath = chartsFolder + '/' + filename
+        if not os.path.isfile(filePath):
+            #build the chart and save it
+            chartData = fetchChartData(symbol,"1d","3mo")
+            try:
+                if not len(chartData):
+                    message = f"Could not find chart information for ${symbol}."
+                    await ctx.send(message)
+                    return
+            except:
+                message = f"Something went wrong retrieving chart data for ${symbol}."
+                await ctx.send(message)
+                return
+            
+            try:
+                chartData = json.loads(chartData.decode())
+            except:
+                message = f"Could not decode json chart data for ${symbol}."
+                await ctx.send(message)
+                return
+
+            inputdata = {}
+            if not chartData["chart"]["result"]:
+                message = f"Could not find chart information for ${symbol}."
+                await ctx.send(message)
+                return
+
+            try:
+                inputdata["DateTime"] = parseTimestamp(chartData)
+                inputdata["Open"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["open"]
+                inputdata["Close"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+                inputdata["Volume"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["volume"]
+                inputdata["High"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["high"]
+                inputdata["Low"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["low"]
+                inputdata["Adj Close"] = chartData["chart"]["result"][0]["indicators"]["adjclose"][0]["adjclose"]
+
+                df = pd.DataFrame(inputdata)
+                df['Datetime'] = pd.to_datetime(inputdata["DateTime"], format='%Y-%m-%d %H:%M:%S')
+                df = df.set_index(pd.DatetimeIndex(df['Datetime']))
+                exp8 = df['Close'].ewm(span=8, adjust=False).mean()
+                exp17 = df['Close'].ewm(span=17, adjust=False).mean()
+                macd = exp8 - exp17
+                signal    = macd.ewm(span=9, adjust=False).mean()
+                histogram = macd - signal
+                macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD(8,17,9)'),
+                            mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True),
+                            mpf.make_addplot(signal,panel=1,color='b',secondary_y=True),
+                ]
+            
+                mpf.plot(
+                    df,
+                    type="candle",
+                    addplot=macdPlot,
+                    mav=10,
+                    title=f"\n{symbol.upper()}",
+                    volume=True,
+                    volume_panel=2,
+                    panel_ratios=(4,2,1),
+                    style="default",
+                    figscale=1.1,
+                    figratio=(8,5),
+                    savefig=dict(fname=filePath, dpi=400, bbox_inches="tight")
+                )
+                await ctx.send(file=discord.File(filePath))
+            except:
+                message = f"Failed to generate chart data for ${symbol}."
+                await ctx.send(message)
     return
 
 @bot.command()
