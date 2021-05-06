@@ -13,9 +13,6 @@ import time
 import datetime
 import pandas as pd
 import mplfinance as mpf
-import seaborn as sns
-from matplotlib import rcParams
-import matplotlib.pyplot as plt
 import random
 
 testing = False
@@ -432,14 +429,13 @@ async def scheduleTask():
 
             CleanUpSavedCharts()
 
-def fetchChartData(symbol):
+def fetchChartData(symbol,intervalIn,rangeIn):
     conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
     headers = {
         'x-rapidapi-key': RAPIDAPIKEY,
         'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
         }
-    #url = f"/market/v2/get-quotes?region=US&symbols={symbol}"
-    url = f"/stock/v2/get-chart?interval=1d&symbol={symbol}&range=6mo&region=US"
+    url = f"/stock/v2/get-chart?interval={intervalIn}&symbol={symbol}&range={rangeIn}&region=US"
     try:
         conn.request("GET", url, headers=headers)
         res = conn.getresponse()
@@ -452,26 +448,30 @@ def fetchChartData(symbol):
     else:
         return None
 
+
 def parseTimestamp(inputdata):
     timestamplist = []
-    
     timestamplist.extend(inputdata["chart"]["result"][0]["timestamp"])
-    timestamplist.extend(inputdata["chart"]["result"][0]["timestamp"])
+    #timestamplist.extend(inputdata["chart"]["result"][0]["timestamp"])
     
     calendertime = []
     
     for ts in timestamplist:
         dt = datetime.datetime.fromtimestamp(ts)
-        calendertime.append(dt.strftime("%m/%d/%Y"))
+        calendertime.append(dt.strftime("%Y-%m-%d %H:%M:%S"))
     
     return calendertime
 
 def parseValues(inputdata):
     valueList = []
-    
+    #Date 	Open 	High 	Low 	Close 	Adj Close 	Volume
     valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["open"])
     valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["close"])
-    
+    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["volume"])
+    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["high"])
+    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["low"])
+    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["adjclose"][0]["adjclose"])
+
     return valueList
 
 def attachEvents(inputdata):
@@ -487,17 +487,17 @@ def attachEvents(inputdata):
 
 @bot.command()
 async def chart(ctx, sym: str):
-    """Generate 6 month chart for request stock."""
+    """Generate 3 month chart for request stock."""
     try:
         symbol = find_symbols(sym)[0]
     except:
         message = f"Could not find a valid symbol to look up."
         return
-    filename = str(symbol) +".png"
+    filename = str(symbol).lower() +".png"
     filePath = chartsFolder + '/' + filename
     if not os.path.isfile(filePath):
         #build the chart and save it
-        chartData = fetchChartData(symbol)
+        chartData = fetchChartData(symbol,"1d","3mo")
         if not len(chartData):
                 message = f"Could not find chart information for ${symbol}."
                 await ctx.send(message)
@@ -508,26 +508,46 @@ async def chart(ctx, sym: str):
                 message = f"Could not find chart information for ${symbol}."
                 await ctx.send(message)
                 return
-        inputdata["Timestamp"] = parseTimestamp(chartData)
-        inputdata["Values"] = parseValues(chartData)
-        inputdata["Events"] = attachEvents(chartData)
-        df = pd.DataFrame(inputdata)
-        sns.reset_defaults()
-        sns.set(style="darkgrid")
-        rcParams = {}
-        rcParams['figure.figsize'] = 13,5
-        rcParams['figure.subplot.bottom'] = 0.2
-        ax = sns.lineplot(x="Timestamp", y="Values", hue="Events",dashes=False, markers=True, data=df, sort=False)
-        caption=f"{symbol} 6 month chart."
-        ax.set_title('Symbol: ' + caption)  
-        plt.xticks(rotation=45, horizontalalignment='right', fontweight='light', fontsize='xx-small')
-        plt.savefig(filePath)
-        plt.clf()
-        plt.cla()
-        plt.close()
+        try:
+            inputdata["DateTime"] = parseTimestamp(chartData)
+            inputdata["Open"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["open"]
+            inputdata["Close"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+            inputdata["Volume"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["volume"]
+            inputdata["High"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["high"]
+            inputdata["Low"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["low"]
+            inputdata["Adj Close"] = chartData["chart"]["result"][0]["indicators"]["adjclose"][0]["adjclose"]
 
-    await ctx.send(file=discord.File(filePath))
-
+            df = pd.DataFrame(inputdata)
+            df['Datetime'] = pd.to_datetime(inputdata["DateTime"], format='%Y-%m-%d %H:%M:%S')
+            df = df.set_index(pd.DatetimeIndex(df['Datetime']))
+            exp8 = df['Close'].ewm(span=8, adjust=False).mean()
+            exp17 = df['Close'].ewm(span=17, adjust=False).mean()
+            macd = exp8 - exp17
+            signal    = macd.ewm(span=9, adjust=False).mean()
+            histogram = macd - signal
+            macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD(8,17,9)'),
+                        mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True),
+                        mpf.make_addplot(signal,panel=1,color='b',secondary_y=True),
+            ]
+        
+            mpf.plot(
+                df,
+                type="candle",
+                addplot=macdPlot,
+                mav=10,
+                title=f"\n{symbol.upper()}",
+                volume=True,
+                volume_panel=2,
+                panel_ratios=(4,2,1),
+                style="default",
+                figscale=1.1,
+                figratio=(8,5),
+                savefig=dict(fname=filePath, dpi=400, bbox_inches="tight")
+            )
+            await ctx.send(file=discord.File(filePath))
+        except:
+            message = f"Failed to generate chart data for ${symbol}."
+            await ctx.send(message)
     return
 
 @bot.command()
