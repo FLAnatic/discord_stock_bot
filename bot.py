@@ -418,10 +418,8 @@ async def scheduleTask():
             channels = bot.get_all_channels()
             for channel in channels:
                 try:
-                    if (testing == True) and (message.channel.name == "testing"):
-                        await channel.send(embed = movers)
-                    elif (testing == False) and (message.channel.name != "testing"):
-                        await channel.send(embed = movers)
+                    if (message.channel.name == "testing") and (testing == True) :
+                        continue
                     else:
                         await channel.send(embed = movers)
                 except:
