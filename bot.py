@@ -494,7 +494,10 @@ async def chart(ctx, sym: str):
             return
         filename = str(symbol).lower() +".png"
         filePath = chartsFolder + '/' + filename
-        if not os.path.isfile(filePath):
+        if os.path.isfile(filePath):
+            await ctx.send(file=discord.File(filePath))
+            return
+        else:
             #build the chart and save it
             chartData = fetchChartData(symbol,"1d","3mo")
             try:
