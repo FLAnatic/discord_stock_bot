@@ -31,8 +31,7 @@ help_text = """
     Market data is provided by [Yahoo! Finance](https://rapidapi.com/apidojo/api/yahoo-finance1)
     """
 
-
-
+# Get token for discord
 try:
     tokenFile = open("token.txt", 'r')
 except OSError:
@@ -42,6 +41,7 @@ except OSError:
 with tokenFile:
     TOKEN = tokenFile.readline()
 
+# Get rapid api key to access yahoo finance api
 try:
     rapidapikeyFile = open('rapidapikey.txt', 'r')
 except OSError:
@@ -51,17 +51,22 @@ except OSError:
 with rapidapikeyFile:
     RAPIDAPIKEY = rapidapikeyFile.readline()
 
+# headers used for all rapid api yahoo finance connection requests
 headers = {
     'x-rapidapi-key': RAPIDAPIKEY,
     'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
 }
 
+# create folders for stored images
 chartsFolder = r'charts' 
 if not os.path.exists(chartsFolder):
     os.makedirs(chartsFolder)
 
 imagesFolder = r'images' 
+if not os.path.exists(imagesFolder):
+    os.makedirs(imagesFolder)
 
+# Load list of stock symbols used for !rand command
 # file generated here : https://www.nasdaq.com/market-activity/stocks/screener
 stockListFileName = 'nasdaq_screener.csv'
 try:
@@ -71,22 +76,9 @@ except:
     stockListLen = 0
     print("Could not open/read stock list csv file.")
 
-millnames = ['','Thousand','M',' B',' T']
-
-def millify(n):
-    n = float(n)
-    millidx = max(0,min(len(millnames)-1,
-                        int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
-
-    return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
-
 def fetchSymbolData(symbol):
+    """ make a stock symbol query request to yahoo finance and return entire contents of message returned """
     conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
-    headers = {
-        'x-rapidapi-key': RAPIDAPIKEY,
-        'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
-        }
-    #url = f"/market/v2/get-quotes?region=US&symbols={symbol}"
     url = f"/stock/v2/get-summary?symbol={symbol}&region=US"
     try:
         conn.request("GET", url, headers=headers)
@@ -101,10 +93,12 @@ def fetchSymbolData(symbol):
         return None
 
 def find_symbols(text: str) -> List[str]:
+    """ find all potential stock symbols starting with $ as a list."""
     SYMBOL_REGEX = "[$]([a-zA-Z-]{1,8})"
     return list(set(re.findall(SYMBOL_REGEX, text)))
 
 def price_reply(symbols: list) -> Dict[str, str]:
+    """ for all symbols in provided list query yahoo finance, parse the data and send an embed reponse or an error message in case of failure """
     dataMessages = {}
     for symbol in symbols:
         data = fetchSymbolData(symbol)
@@ -290,6 +284,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
     return dataMessages
 
 def get_movers():
+    """ make market movers request to yahoo finance and rturns the result data"""
     message = {}
     conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
     url = f"/market/v2/get-movers?region=US&lang=en-US&start=0&count=25"
@@ -333,10 +328,13 @@ def get_movers():
 client = discord.Client()
 bot = commands.Bot(command_prefix="!", description=help_text,)
 
+# setup uthe daily get movers query with the schedule
 doGetMoversUpdate = False
 def get_movers_schedule():
     global doGetMoversUpdate
-    doGetMoversUpdate = True
+    weekno = datetime.datetime.today().weekday()
+    if weekno < 5:
+        doGetMoversUpdate = True
         
 schedule.every().day.at("17:00").do(get_movers_schedule)
 
@@ -408,31 +406,27 @@ async def movers(ctx):
 
 @tasks.loop(minutes=1)
 async def scheduleTask():
+    """ execute getmovers and clean up charts on schedule """
     schedule.run_pending()
     global doGetMoversUpdate
     if doGetMoversUpdate is True:
         doGetMoversUpdate = False
-        weekno = datetime.datetime.today().weekday()
-        if weekno < 5:
-            movers = get_movers()
-            channels = bot.get_all_channels()
-            for channel in channels:
-                try:
-                    if (message.channel.name == "testing") and (testing == True) :
-                        continue
-                    else:
-                        await channel.send(embed = movers)
-                except:
+        movers = get_movers()
+        channels = bot.get_all_channels()
+        for channel in channels:
+            try:
+                if (message.channel.name == "testing") and (testing == True) :
                     continue
+                else:
+                    await channel.send(embed = movers)
+            except:
+                continue
 
-            CleanUpSavedCharts()
+        CleanUpSavedCharts()
 
 def fetchChartData(symbol,intervalIn,rangeIn):
+    """ makes yahoo finance chart query for provided symbol interval and range """
     conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
-    headers = {
-        'x-rapidapi-key': RAPIDAPIKEY,
-        'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
-        }
     url = f"/stock/v2/get-chart?interval={intervalIn}&symbol={symbol}&range={rangeIn}&region=US"
     try:
         conn.request("GET", url, headers=headers)
@@ -448,10 +442,10 @@ def fetchChartData(symbol,intervalIn,rangeIn):
 
 
 def parseTimestamp(inputdata):
+    """ Convert epoch timestamt into 2021-05-07 04:48:00 format """
     timestamplist = []
     timestamplist.extend(inputdata["chart"]["result"][0]["timestamp"])
-    #timestamplist.extend(inputdata["chart"]["result"][0]["timestamp"])
-    
+  
     calendertime = []
     
     for ts in timestamplist:
@@ -459,29 +453,6 @@ def parseTimestamp(inputdata):
         calendertime.append(dt.strftime("%Y-%m-%d %H:%M:%S"))
     
     return calendertime
-
-def parseValues(inputdata):
-    valueList = []
-    #Date 	Open 	High 	Low 	Close 	Adj Close 	Volume
-    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["open"])
-    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["close"])
-    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["volume"])
-    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["high"])
-    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["quote"][0]["low"])
-    valueList.extend(inputdata["chart"]["result"][0]["indicators"]["adjclose"][0]["adjclose"])
-
-    return valueList
-
-def attachEvents(inputdata):
-    eventlist = []
-    
-    for i in range(0,len(inputdata["chart"]["result"][0]["timestamp"])):
-        eventlist.append("open")  
-    
-    for i in range(0,len(inputdata["chart"]["result"][0]["timestamp"])):
-        eventlist.append("close")
-    
-    return eventlist
 
 @bot.command()
 async def chart(ctx, sym: str):
