@@ -414,13 +414,18 @@ async def scheduleTask():
         movers = get_movers()
         channels = bot.get_all_channels()
         for channel in channels:
-            try:
-                if (message.channel.name == "testing") and (testing == True) :
-                    continue
-                else:
+            if (channel.name == "testing") and (testing == True) :
+                try:
                     await channel.send(embed = movers)
-            except:
+                except:
+                    continue
+            elif testing is True:
                 continue
+            else:
+                try:
+                    await channel.send(embed = movers)
+                except:
+                    continue
 
         CleanUpSavedCharts()
 
