@@ -119,11 +119,34 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 marketState =  jsonData["price"]["marketState"]
                 price = jsonData["price"]["regularMarketPrice"]["fmt"]
                 try:
-                    postMarketPrice = jsonData["price"]["postMarketPrice"]["fmt"]
                     preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
+                    preMarketChangeRaw = jsonData["price"]["preMarketChange"]["raw"]
+                    preMarketChange = jsonData["price"]["preMarketChange"]["fmt"]
+                    preMarketChangePct = jsonData["price"]["preMarketChangePercent"]["fmt"]
+                    preMarketGain = False
+                    if preMarketChangeRaw >= 0:
+                        preMarketChange = "+" + preMarketChange
+                        preMarketChangePct = "+" +preMarketChangePct
+                        preMarketGain = True
+                except:
+                    preMarketPrice = price
+                    preMarketChange = "N/A"
+                    preMarketChangePct = "N/A"
+                try:
+                    postMarketPrice = jsonData["price"]["postMarketPrice"]["fmt"]
+                    postMarketChangeRaw = jsonData["price"]["postMarketChange"]["raw"]
+                    postMarketChange = jsonData["price"]["postMarketChange"]["fmt"]
+                    postMarketChangePct = jsonData["price"]["postMarketChangePercent"]["fmt"]
+                    postMarketGain = False
+                    if postMarketChangeRaw >= 0:
+                        postMarketChange = "+" + postMarketChange
+                        postMarketChangePct = "+" + postMarketChangePct
+                        postMarketGain = True
+
                 except:
                     postMarketPrice = price
-                    preMarketPrice = price
+                    postMarketChange = "N/A"
+                    postMarketChangePct = "N/A"
                 try:
                     industry = jsonData["summaryProfile"]["industry"]
                     sector = jsonData["summaryProfile"]["sector"]
@@ -134,8 +157,19 @@ def price_reply(symbols: list) -> Dict[str, str]:
                     regularMarketDayLow = jsonData["price"]["regularMarketDayLow"]["fmt"]
                     regularMarketDayHigh = jsonData["price"]["regularMarketDayHigh"]["fmt"]
                     regMktDayRng = str(regularMarketDayLow) + " - " + str(regularMarketDayHigh)
+                    regularMarketDayChange = jsonData["price"]["regularMarketChange"]["fmt"]
+                    regularMarketDayChangeRaw = jsonData["price"]["regularMarketChange"]["raw"]
+                    regularMarketDayChangePct = jsonData["price"]["regularMarketChangePercent"]["fmt"]
+                    regularMarketDayChangePctRaw = jsonData["price"]["regularMarketChangePercent"]["raw"]
+                    regularMarketDayGain = False
+                    if regularMarketDayChangeRaw >= 0:
+                        regularMarketDayChange = "+" + regularMarketDayChange
+                        regularMarketDayChangePct = "+" + regularMarketDayChangePct
+                        regularMarketDayGain = True
                 except:
                     regMktDayRng = "N/A"
+                    regularMarketDayChange = "N/A"
+                    regularMarketDayChangePct = "N/A"
                 
                 try:
                     fiftyTwoWeekLow = jsonData["summaryDetail"]["fiftyTwoWeekLow"]["fmt"]
@@ -250,12 +284,18 @@ def price_reply(symbols: list) -> Dict[str, str]:
 
 
                 print(longName, price)
-                description = f"The market price of {symbol} is ${price}"
+                emojiIndicator = ""
+                if regularMarketDayChangePctRaw > 0.05:
+                    emojiIndicator = ":rocket:"
+                elif regularMarketDayChangePctRaw < -0.05:
+                    emojiIndicator = ":skull:"
+                
+                description = f"**${price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
                 if marketState == "POST":
-                    description = f"The post-market price of {symbol} is ${postMarketPrice}"
+                    description += f"\r\n\r\n*Post-market: ${postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
                 elif marketState == "PRE":
-                    description = f"The pre-market price of {symbol} is ${preMarketPrice}"
-                message = discord.Embed(title=str(longName).upper(), url=f"https://finance.yahoo.com/quote/{symbol}",
+                    description += f"\r\n\r\n*Pre-market: ${preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
+                message = discord.Embed(title=str(longName).upper() + f" ({symbol})", url=f"https://finance.yahoo.com/quote/{symbol}",
                                         description=description,
                                         color=0xFF5733)
                 message.add_field(name="Quote Type", value=quoteType, inline=True)
