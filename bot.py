@@ -15,7 +15,7 @@ import pandas as pd
 import mplfinance as mpf
 import random
 
-testing = False
+testing = True
 
 help_text = """
 
@@ -97,6 +97,394 @@ def find_symbols(text: str) -> List[str]:
     SYMBOL_REGEX = "[$]([a-zA-Z-]{1,8})"
     return list(set(re.findall(SYMBOL_REGEX, text)))
 
+def Do_Equity_Reply(jsonData):
+    """ formulate a reply specifically for an equity quote type """
+    try:
+        quoteType = jsonData["quoteType"]["quoteType"]
+        shortName = jsonData["quoteType"]["shortName"]
+        try:
+            longName = jsonData["quoteType"]["longName"]
+        except:
+            longName = shortName
+        symbol = jsonData["quoteType"]["symbol"]
+        marketState = jsonData["price"]["marketState"]
+        price = jsonData["price"]["regularMarketPrice"]["fmt"]
+        try:
+            preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
+            preMarketChangeRaw = jsonData["price"]["preMarketChange"]["raw"]
+            preMarketChange = jsonData["price"]["preMarketChange"]["fmt"]
+            preMarketChangePct = jsonData["price"]["preMarketChangePercent"]["fmt"]
+            preMarketGain = False
+            if preMarketChangeRaw >= 0:
+                preMarketChange = "+" + preMarketChange
+                preMarketChangePct = "+" + preMarketChangePct
+                preMarketGain = True
+        except:
+            preMarketPrice = price
+            preMarketChange = "N/A"
+            preMarketChangePct = "N/A"
+        try:
+            postMarketPrice = jsonData["price"]["postMarketPrice"]["fmt"]
+            postMarketChangeRaw = jsonData["price"]["postMarketChange"]["raw"]
+            postMarketChange = jsonData["price"]["postMarketChange"]["fmt"]
+            postMarketChangePct = jsonData["price"]["postMarketChangePercent"]["fmt"]
+            postMarketGain = False
+            if postMarketChangeRaw >= 0:
+                postMarketChange = "+" + postMarketChange
+                postMarketChangePct = "+" + postMarketChangePct
+                postMarketGain = True
+
+        except:
+            postMarketPrice = price
+            postMarketChange = "N/A"
+            postMarketChangePct = "N/A"
+        try:
+            industry = jsonData["summaryProfile"]["industry"]
+            sector = jsonData["summaryProfile"]["sector"]
+        except:
+            industry = "N/A"
+            sector = "N/A"
+        try:
+            regularMarketDayLow = jsonData["price"]["regularMarketDayLow"]["fmt"]
+            regularMarketDayHigh = jsonData["price"]["regularMarketDayHigh"]["fmt"]
+            regMktDayRng = str(regularMarketDayLow) + \
+                                " - " + str(regularMarketDayHigh)
+            regularMarketDayChange = jsonData["price"]["regularMarketChange"]["fmt"]
+            regularMarketDayChangeRaw = jsonData["price"]["regularMarketChange"]["raw"]
+            regularMarketDayChangePct = jsonData["price"]["regularMarketChangePercent"]["fmt"]
+            regularMarketDayChangePctRaw = jsonData["price"]["regularMarketChangePercent"]["raw"]
+            regularMarketDayGain = False
+            if regularMarketDayChangeRaw >= 0:
+                regularMarketDayChange = "+" + regularMarketDayChange
+                regularMarketDayChangePct = "+" + regularMarketDayChangePct
+                regularMarketDayGain = True
+        except:
+            regMktDayRng = "N/A"
+            regularMarketDayChange = "N/A"
+            regularMarketDayChangePct = "N/A"
+
+        try:
+            fiftyTwoWeekLow = jsonData["summaryDetail"]["fiftyTwoWeekLow"]["fmt"]
+            fiftyTwoWeekHigh = jsonData["summaryDetail"]["fiftyTwoWeekHigh"]["fmt"]
+            fiftyTwoWeekRange = str(
+                fiftyTwoWeekLow) + " - " + str(fiftyTwoWeekHigh)
+        except:
+            fiftyTwoWeekRange = "N/A"
+        try:
+            enterpriseToEbitda = jsonData["defaultKeyStatistics"]["enterpriseToEbitda"]["fmt"]
+        except:
+            enterpriseToEbitda = "N/A"
+        try:
+            marketCap = jsonData["price"]["marketCap"]["fmt"]
+        except:
+            marketCap = "N/A"
+        try:
+            trailingPERaw = jsonData["summaryDetail"]["trailingPE"]["raw"]
+            trailingPEFmt = jsonData["summaryDetail"]["trailingPE"]["fmt"]
+            if 0 <= trailingPERaw <= 15:
+                peColor = ':green_circle:'
+            elif trailingPERaw < 0 or trailingPERaw > 50:
+                peColor = ':red_circle:'
+            else:
+                peColor = ':yellow_circle:'
+            trailingPE = trailingPEFmt + peColor
+        except:
+            trailingPE = "N/A"
+        try:
+            pegRatioRaw = jsonData["defaultKeyStatistics"]["pegRatio"]["raw"]
+            pegRatioFmt = jsonData["defaultKeyStatistics"]["pegRatio"]["fmt"]
+            if 0 <= pegRatioRaw <= 1:
+                pegColor = ':green_circle:'
+            elif pegRatioRaw < 0 or pegRatioRaw > 2:
+                    pegColor = ':red_circle:'
+            else:
+                pegColor = ':yellow_circle:'
+            pegRatio = pegRatioFmt + pegColor
+        except:
+            pegRatio = "N/A"
+        try:
+            priceToBookRaw = jsonData["defaultKeyStatistics"]["priceToBook"]["raw"]
+            priceToBookFmt = jsonData["defaultKeyStatistics"]["priceToBook"]["fmt"]
+            if 0 <= priceToBookRaw <= 2:
+                priceToBookColor = ':green_circle:'
+            elif priceToBookRaw < 0 or priceToBookRaw > 5:
+                priceToBookColor = ':red_circle:'
+            else:
+                priceToBookColor = ':yellow_circle:'
+            priceToBook = priceToBookFmt + priceToBookColor
+        except:
+            priceToBook = "N/A"
+        try:
+
+            priceToSalesRaw = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["raw"]
+            priceToSalesFmt = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["fmt"]
+            if 0 <= priceToSalesRaw <= 2:
+                priceToSalesColor = ':green_circle:'
+            elif priceToSalesRaw < 0 or priceToSalesRaw > 10:
+                priceToSalesColor = ':red_circle:'
+            else:
+                priceToSalesColor = ':yellow_circle:'
+            priceToSales = priceToSalesFmt + priceToSalesColor
+        except:
+            priceToSales = "N/A"
+        try:
+            dividendRate = jsonData["summaryDetail"]["dividendRate"]["fmt"]
+            dividendYield = jsonData["summaryDetail"]["dividendYield"]["fmt"]
+        except:
+            dividendRate = "N/A"
+            dividendYield = "N/A"
+        try:
+            beta = jsonData["summaryDetail"]["beta"]["fmt"]
+        except:
+            beta = "N/A"
+
+        insiderPurchases = "N/A"
+        try:
+            buyInfoShares = jsonData["netSharePurchaseActivity"]["buyInfoShares"]["fmt"]
+        except:
+            buyInfoShares = "N/A"
+        try:
+            buyInfoCount = jsonData["netSharePurchaseActivity"]["buyInfoCount"]["fmt"]
+        except:
+            buyInfoCount = "N/A"
+        try:
+            sellInfoShares = jsonData["netSharePurchaseActivity"]["sellInfoShares"]["fmt"]
+        except:
+            sellInfoShares = "N/A"
+        try:
+            sellInfoCount = jsonData["netSharePurchaseActivity"]["sellInfoCount"]["fmt"]
+        except:
+            sellInfoCount = "N/A"
+        try:
+            insiderPercentHeld = jsonData["majorHoldersBreakdown"]["insidersPercentHeld"]["fmt"]
+        except:
+            insiderPercentHeld = "N/A"
+        try:
+            institutionPercentHeld = jsonData["majorHoldersBreakdown"]["institutionsPercentHeld"]["fmt"]
+        except:
+            institutionPercentHeld = "N/A"
+        try:
+            shortPercentOfFloat = jsonData["defaultKeyStatistics"]["shortPercentOfFloat"]["fmt"]
+        except:
+            shortPercentOfFloat = "N/A"
+
+        insiderPurchases = (f"Purchases: {buyInfoShares} shares in {buyInfoCount} transactions.\r\n" +
+                            f"Sales: {sellInfoShares} shares in {sellInfoCount} transactions.")
+        insiderHolding = (f"% Held by Insiders: {insiderPercentHeld}.\r\n" +
+                            f"% Held by Institutions: {institutionPercentHeld}.\r\n" +
+                            f"Short % of Float: {shortPercentOfFloat}.\r\n"
+                            f"http://www.openinsider.com/{symbol}")
+
+        print(longName, price)
+        emojiIndicator = ""
+        if regularMarketDayChangePctRaw > 0.05:
+            emojiIndicator = ":rocket:"
+        elif regularMarketDayChangePctRaw < -0.05:
+            emojiIndicator = ":skull:"
+
+        description = f"**${price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
+        if marketState == "POST":
+            description += f"\r\n\r\n*Post-market: ${postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
+        elif marketState == "PRE":
+            description += f"\r\n\r\n*Pre-market: ${preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
+        message = discord.Embed(title=str(longName).upper() + f" ({symbol})", url=f"https://finance.yahoo.com/quote/{symbol}",
+                                description=description,
+                                color=0xFF5733)
+        message.add_field(name="Quote Type",
+                            value=quoteType, inline=True)
+        message.add_field(name="Industry", value=industry, inline=True)
+        message.add_field(name="Sector", value=sector, inline=True)
+        message.add_field(name="Market Cap",
+                            value=marketCap, inline=True)
+        message.add_field(name="Regular Market Day Range",
+                            value=regMktDayRng, inline=True)
+        message.add_field(name="Last 52 Week Range",
+                            value=fiftyTwoWeekRange, inline=True)
+        message.add_field(name="PE Ratio (TTM)",
+                            value=trailingPE, inline=True)
+        message.add_field(name="PEG Ratio",
+                            value=pegRatio, inline=True)
+        message.add_field(name="Price to Book",
+                            value=priceToBook, inline=True)
+        message.add_field(name="Price to Sales",
+                            value=priceToSales, inline=True)
+        message.add_field(name="Enterprise Value/EBITDA",
+                            value=enterpriseToEbitda, inline=True)
+        message.add_field(name="beta", value=beta, inline=True)
+
+        rateAndYield = str(dividendRate) + \
+                            " (" + str(dividendYield) + ")"
+        message.add_field(name="Dividend Rate and Yield",
+                            value=rateAndYield, inline=True)
+
+        message.add_field(name="Share Statistics",
+                            value=insiderHolding, inline=False)
+        message.add_field(name="MorningStar Key Ratios",
+                            value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
+    except:
+        message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
+    
+    return message
+
+def Do_ETF_Reply(jsonData: dict):
+    """ formulate a reply specifically for an ETF quote type """
+    try:
+        quoteType = jsonData["quoteType"]["quoteType"]
+        shortName = jsonData["quoteType"]["shortName"]
+        try:
+            longName = jsonData["quoteType"]["longName"]
+        except:
+            longName = shortName
+        symbol = jsonData["quoteType"]["symbol"]
+        marketState = jsonData["price"]["marketState"]
+        price = jsonData["price"]["regularMarketPrice"]["fmt"]
+        try:
+            preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
+            preMarketChangeRaw = jsonData["price"]["preMarketChange"]["raw"]
+            preMarketChange = jsonData["price"]["preMarketChange"]["fmt"]
+            preMarketChangePct = jsonData["price"]["preMarketChangePercent"]["fmt"]
+            preMarketGain = False
+            if preMarketChangeRaw >= 0:
+                preMarketChange = "+" + preMarketChange
+                preMarketChangePct = "+" + preMarketChangePct
+                preMarketGain = True
+        except:
+            preMarketPrice = price
+            preMarketChange = "N/A"
+            preMarketChangePct = "N/A"
+        try:
+            postMarketPrice = jsonData["price"]["postMarketPrice"]["fmt"]
+            postMarketChangeRaw = jsonData["price"]["postMarketChange"]["raw"]
+            postMarketChange = jsonData["price"]["postMarketChange"]["fmt"]
+            postMarketChangePct = jsonData["price"]["postMarketChangePercent"]["fmt"]
+            postMarketGain = False
+            if postMarketChangeRaw >= 0:
+                postMarketChange = "+" + postMarketChange
+                postMarketChangePct = "+" + postMarketChangePct
+                postMarketGain = True
+        except:
+            postMarketPrice = price
+            postMarketChange = "N/A"
+            postMarketChangePct = "N/A"
+
+        try:
+            regularMarketDayLow = jsonData["price"]["regularMarketDayLow"]["fmt"]
+            regularMarketDayHigh = jsonData["price"]["regularMarketDayHigh"]["fmt"]
+            regMktDayRng = str(regularMarketDayLow) + \
+                                " - " + str(regularMarketDayHigh)
+            regularMarketDayChange = jsonData["price"]["regularMarketChange"]["fmt"]
+            regularMarketDayChangeRaw = jsonData["price"]["regularMarketChange"]["raw"]
+            regularMarketDayChangePct = jsonData["price"]["regularMarketChangePercent"]["fmt"]
+            regularMarketDayChangePctRaw = jsonData["price"]["regularMarketChangePercent"]["raw"]
+            regularMarketDayGain = False
+            if regularMarketDayChangeRaw >= 0:
+                regularMarketDayChange = "+" + regularMarketDayChange
+                regularMarketDayChangePct = "+" + regularMarketDayChangePct
+                regularMarketDayGain = True
+        except:
+            regMktDayRng = "N/A"
+            regularMarketDayChange = "N/A"
+            regularMarketDayChangePct = "N/A"
+
+        try:
+            fiftyTwoWeekLow = jsonData["summaryDetail"]["fiftyTwoWeekLow"]["fmt"]
+            fiftyTwoWeekHigh = jsonData["summaryDetail"]["fiftyTwoWeekHigh"]["fmt"]
+            fiftyTwoWeekRange = str(
+                fiftyTwoWeekLow) + " - " + str(fiftyTwoWeekHigh)
+        except:
+            fiftyTwoWeekRange = "N/A"
+
+        try:
+            marketCap = jsonData["price"]["marketCap"]["fmt"]
+        except:
+            marketCap = "N/A"
+
+        try:
+            beta = jsonData["defaultKeyStatistics"]["beta3Year"]["fmt"]
+        except:
+            beta = "N/A"
+        try:
+            fundInceptionDate = jsonData["defaultKeyStatistics"]["fundInceptionDate"]["fmt"]
+        except:
+            fundInceptionDate = "N/A"
+        try:
+            fundFamily = jsonData["defaultKeyStatistics"]["fundFamily"]
+        except:
+            fundFamily = "N/A"
+        try:
+            totalAssets = jsonData["defaultKeyStatistics"]["totalAssets"]["fmt"]
+        except:
+            totalAssets = "N/A"
+        try:
+            fundYield = jsonData["defaultKeyStatistics"]["yield"]["fmt"]
+        except:
+            fundYield = "N/A"
+        try:
+            ytdReturn = jsonData["defaultKeyStatistics"]["ytdReturn"]["fmt"]
+        except:
+            ytdReturn = "N/A"
+        try:
+            threeYearAverageReturn = jsonData["defaultKeyStatistics"]["threeYearAverageReturn"]["fmt"]
+        except:
+            threeYearAverageReturn = "N/A"
+        try:
+            fiveYearAverageReturn = jsonData["defaultKeyStatistics"]["fiveYearAverageReturn"]["fmt"]
+        except:
+            fiveYearAverageReturn = "N/A"
+        try:
+            styleBox = jsonData["fundProfile"]["styleBoxUrl"]
+        except:
+            styleBox = "N/A"
+        try:
+            expenses = jsonData["fundProfile"]["feesExpensesInvestment"]["annualReportExpenseRatio"]
+        except:
+            expenses = "N/A" 
+      
+            
+            
+
+        print(longName, price)
+        emojiIndicator = ""
+        if regularMarketDayChangePctRaw > 0.05:
+            emojiIndicator = ":rocket:"
+        elif regularMarketDayChangePctRaw < -0.05:
+            emojiIndicator = ":skull:"
+
+        description = f"**${price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
+        if marketState == "POST":
+            description += f"\r\n\r\n*Post-market: ${postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
+        elif marketState == "PRE":
+            description += f"\r\n\r\n*Pre-market: ${preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
+        message = discord.Embed(title=str(longName).upper() + f" ({symbol})", url=f"https://finance.yahoo.com/quote/{symbol}",
+                                description=description,
+                                color=0xFF5733)
+        message.add_field(name="Quote Type",
+                            value=quoteType, inline=True)
+        message.add_field(name="Fund Family",
+                            value=fundFamily, inline=True)
+        message.add_field(name="Market Cap",
+                            value=marketCap, inline=True)
+        message.add_field(name="Total Assets",
+                            value=totalAssets, inline=True)
+        message.add_field(name="Regular Market Day Range",
+                            value=regMktDayRng, inline=True)
+        message.add_field(name="Last 52 Week Range",
+                            value=fiftyTwoWeekRange, inline=True)
+        message.add_field(name="beta", value=beta, inline=True)
+
+        message.add_field(name="Fund Inception Date", value=fundInceptionDate, inline=True)
+
+        message.add_field(name="MorningStar ETF Performance",
+                            value=f"https://www.morningstar.com/etfs/arcx/{symbol}/performance", inline=False)
+    except:
+        message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
+    
+    return message
+
+def Do_Fund_Reply(jsonData: dict):
+    """ formulate a reply specifically for an Mutual Fund quote type """
+    return Do_Equity_Reply(jsonData)
+
 def price_reply(symbols: list) -> Dict[str, str]:
     """ for all symbols in provided list query yahoo finance, parse the data and send an embed reponse or an error message in case of failure """
     dataMessages = {}
@@ -107,217 +495,24 @@ def price_reply(symbols: list) -> Dict[str, str]:
             dataMessages[symbol] = message
         else:
             jsonData = json.loads(data.decode())
+            
+            theType = type(jsonData)
+
             message = {}
             try:
-                shortName = jsonData["quoteType"]["shortName"]
-                try:
-                    longName = jsonData["quoteType"]["longName"]
-                except:
-                    longName = shortName
                 quoteType = jsonData["quoteType"]["quoteType"]
-                symbol = jsonData["quoteType"]["symbol"]
-                marketState =  jsonData["price"]["marketState"]
-                price = jsonData["price"]["regularMarketPrice"]["fmt"]
-                try:
-                    preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
-                    preMarketChangeRaw = jsonData["price"]["preMarketChange"]["raw"]
-                    preMarketChange = jsonData["price"]["preMarketChange"]["fmt"]
-                    preMarketChangePct = jsonData["price"]["preMarketChangePercent"]["fmt"]
-                    preMarketGain = False
-                    if preMarketChangeRaw >= 0:
-                        preMarketChange = "+" + preMarketChange
-                        preMarketChangePct = "+" +preMarketChangePct
-                        preMarketGain = True
-                except:
-                    preMarketPrice = price
-                    preMarketChange = "N/A"
-                    preMarketChangePct = "N/A"
-                try:
-                    postMarketPrice = jsonData["price"]["postMarketPrice"]["fmt"]
-                    postMarketChangeRaw = jsonData["price"]["postMarketChange"]["raw"]
-                    postMarketChange = jsonData["price"]["postMarketChange"]["fmt"]
-                    postMarketChangePct = jsonData["price"]["postMarketChangePercent"]["fmt"]
-                    postMarketGain = False
-                    if postMarketChangeRaw >= 0:
-                        postMarketChange = "+" + postMarketChange
-                        postMarketChangePct = "+" + postMarketChangePct
-                        postMarketGain = True
-
-                except:
-                    postMarketPrice = price
-                    postMarketChange = "N/A"
-                    postMarketChangePct = "N/A"
-                try:
-                    industry = jsonData["summaryProfile"]["industry"]
-                    sector = jsonData["summaryProfile"]["sector"]
-                except:
-                    industry = "N/A"
-                    sector = "N/A"
-                try:
-                    regularMarketDayLow = jsonData["price"]["regularMarketDayLow"]["fmt"]
-                    regularMarketDayHigh = jsonData["price"]["regularMarketDayHigh"]["fmt"]
-                    regMktDayRng = str(regularMarketDayLow) + " - " + str(regularMarketDayHigh)
-                    regularMarketDayChange = jsonData["price"]["regularMarketChange"]["fmt"]
-                    regularMarketDayChangeRaw = jsonData["price"]["regularMarketChange"]["raw"]
-                    regularMarketDayChangePct = jsonData["price"]["regularMarketChangePercent"]["fmt"]
-                    regularMarketDayChangePctRaw = jsonData["price"]["regularMarketChangePercent"]["raw"]
-                    regularMarketDayGain = False
-                    if regularMarketDayChangeRaw >= 0:
-                        regularMarketDayChange = "+" + regularMarketDayChange
-                        regularMarketDayChangePct = "+" + regularMarketDayChangePct
-                        regularMarketDayGain = True
-                except:
-                    regMktDayRng = "N/A"
-                    regularMarketDayChange = "N/A"
-                    regularMarketDayChangePct = "N/A"
-                
-                try:
-                    fiftyTwoWeekLow = jsonData["summaryDetail"]["fiftyTwoWeekLow"]["fmt"]
-                    fiftyTwoWeekHigh = jsonData["summaryDetail"]["fiftyTwoWeekHigh"]["fmt"]
-                    fiftyTwoWeekRange = str(fiftyTwoWeekLow) + " - " + str(fiftyTwoWeekHigh)
-                except:
-                    fiftyTwoWeekRange = "N/A"
-                try:
-                    enterpriseToEbitda = jsonData["defaultKeyStatistics"]["enterpriseToEbitda"]["fmt"]
-                except:
-                    enterpriseToEbitda = "N/A"
-                try:
-                    marketCap = jsonData["price"]["marketCap"]["fmt"]
-                except:
-                    marketCap = "N/A"
-                try:
-                    trailingPERaw = jsonData["summaryDetail"]["trailingPE"]["raw"]
-                    trailingPEFmt = jsonData["summaryDetail"]["trailingPE"]["fmt"]
-                    if 0 <= trailingPERaw <= 15:
-                        peColor = ':green_circle:'
-                    elif trailingPERaw < 0 or trailingPERaw > 50:
-                        peColor = ':red_circle:'
-                    else:
-                        peColor = ':yellow_circle:'
-                    trailingPE = trailingPEFmt + peColor
-                except:
-                    trailingPE = "N/A"
-                try:
-                    pegRatioRaw = jsonData["defaultKeyStatistics"]["pegRatio"]["raw"]
-                    pegRatioFmt = jsonData["defaultKeyStatistics"]["pegRatio"]["fmt"]
-                    if 0 <= pegRatioRaw <= 1:
-                        pegColor = ':green_circle:'
-                    elif pegRatioRaw < 0 or pegRatioRaw > 2:
-                         pegColor = ':red_circle:'
-                    else:
-                        pegColor = ':yellow_circle:'
-                    pegRatio = pegRatioFmt + pegColor
-                except:
-                    pegRatio = "N/A"
-                try:
-                    priceToBookRaw = jsonData["defaultKeyStatistics"]["priceToBook"]["raw"]
-                    priceToBookFmt = jsonData["defaultKeyStatistics"]["priceToBook"]["fmt"]
-                    if 0 <= priceToBookRaw <= 2:
-                        priceToBookColor = ':green_circle:'
-                    elif priceToBookRaw < 0 or priceToBookRaw > 5:
-                        priceToBookColor = ':red_circle:'
-                    else:
-                        priceToBookColor = ':yellow_circle:'
-                    priceToBook = priceToBookFmt + priceToBookColor
-                except:
-                    priceToBook = "N/A"
-                try:
-                    
-                    priceToSalesRaw = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["raw"]
-                    priceToSalesFmt = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["fmt"]
-                    if 0 <= priceToSalesRaw <= 2:
-                        priceToSalesColor = ':green_circle:'
-                    elif priceToSalesRaw < 0 or priceToSalesRaw > 10:
-                        priceToSalesColor = ':red_circle:'
-                    else:
-                        priceToSalesColor = ':yellow_circle:'
-                    priceToSales = priceToSalesFmt + priceToSalesColor
-                except:
-                    priceToSales = "N/A"
-                try:
-                    dividendRate = jsonData["summaryDetail"]["dividendRate"]["fmt"]
-                    dividendYield = jsonData["summaryDetail"]["dividendYield"]["fmt"]
-                except:
-                    dividendRate = "N/A"
-                    dividendYield = "N/A"
-                try:
-                    beta = jsonData["summaryDetail"]["beta"]["fmt"]
-                except:
-                    beta = "N/A"
-
-                insiderPurchases = "N/A"
-                try:
-                    buyInfoShares = jsonData["netSharePurchaseActivity"]["buyInfoShares"]["fmt"]
-                except:
-                    buyInfoShares = "N/A"
-                try:
-                    buyInfoCount = jsonData["netSharePurchaseActivity"]["buyInfoCount"]["fmt"]
-                except:
-                    buyInfoCount = "N/A"
-                try:
-                    sellInfoShares = jsonData["netSharePurchaseActivity"]["sellInfoShares"]["fmt"]
-                except:
-                    sellInfoShares = "N/A"
-                try:
-                    sellInfoCount = jsonData["netSharePurchaseActivity"]["sellInfoCount"]["fmt"]
-                except:
-                    sellInfoCount = "N/A"
-                try:
-                    insiderPercentHeld = jsonData["majorHoldersBreakdown"]["insidersPercentHeld"]["fmt"]
-                except:
-                    insiderPercentHeld = "N/A"
-                try:
-                    institutionPercentHeld = jsonData["majorHoldersBreakdown"]["institutionsPercentHeld"]["fmt"]
-                except:
-                    institutionPercentHeld = "N/A"
-                try:
-                    shortPercentOfFloat = jsonData["defaultKeyStatistics"]["shortPercentOfFloat"]["fmt"]
-                except:
-                    shortPercentOfFloat = "N/A"  
-
-                insiderPurchases = (f"Purchases: {buyInfoShares} shares in {buyInfoCount} transactions.\r\n" +
-                                    f"Sales: {sellInfoShares} shares in {sellInfoCount} transactions.")
-                insiderHolding = (f"% Held by Insiders: {insiderPercentHeld}.\r\n" +
-                                  f"% Held by Institutions: {institutionPercentHeld}.\r\n" +
-                                  f"Short % of Float: {shortPercentOfFloat}.\r\n"
-                                  f"http://www.openinsider.com/{symbol}")
-
-
-                print(longName, price)
-                emojiIndicator = ""
-                if regularMarketDayChangePctRaw > 0.05:
-                    emojiIndicator = ":rocket:"
-                elif regularMarketDayChangePctRaw < -0.05:
-                    emojiIndicator = ":skull:"
-                
-                description = f"**${price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
-                if marketState == "POST":
-                    description += f"\r\n\r\n*Post-market: ${postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
-                elif marketState == "PRE":
-                    description += f"\r\n\r\n*Pre-market: ${preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
-                message = discord.Embed(title=str(longName).upper() + f" ({symbol})", url=f"https://finance.yahoo.com/quote/{symbol}",
-                                        description=description,
-                                        color=0xFF5733)
-                message.add_field(name="Quote Type", value=quoteType, inline=True)
-                message.add_field(name="Industry", value=industry, inline=True)
-                message.add_field(name="Sector", value=sector, inline=True)
-                message.add_field(name="Market Cap", value=marketCap, inline=True)
-                message.add_field(name="Regular Market Day Range", value=regMktDayRng, inline=True)
-                message.add_field(name="Last 52 Week Range", value=fiftyTwoWeekRange, inline=True)
-                message.add_field(name="PE Ratio (TTM)", value=trailingPE, inline=True)
-                message.add_field(name="PEG Ratio", value=pegRatio, inline=True)
-                message.add_field(name="Price to Book", value=priceToBook, inline=True)
-                message.add_field(name="Price to Sales", value=priceToSales, inline=True)
-                message.add_field(name="Enterprise Value/EBITDA",value=enterpriseToEbitda, inline=True)
-                message.add_field(name="beta",value=beta, inline=True)
-
-                rateAndYield = str(dividendRate) + " (" + str(dividendYield) + ")"
-                message.add_field(name="Dividend Rate and Yield", value=rateAndYield, inline=True)
-
-                message.add_field(name="Share Statistics",value=insiderHolding, inline=False)
-                message.add_field(name="MorningStar Key Ratios", value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
+                if quoteType == "EQUITY":
+                    message = Do_Equity_Reply(jsonData)
+                elif quoteType == "ETF":
+                    message = Do_ETF_Reply(jsonData)
+                elif quoteType == "MUTUALFUND":
+                    message = Do_Fund_Reply(jsonData)
+                elif quoteType == "CRYPTOCURRENCY":
+                    message = Do_Equity_Reply(jsonData)
+                else:
+                    message = Do_Equity_Reply(jsonData)
             except:
-                message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
+                message = f"Could not find quote type for ${symbol}."
 
             dataMessages[symbol] = message
 
