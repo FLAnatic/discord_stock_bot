@@ -438,10 +438,69 @@ def Do_ETF_Reply(jsonData: dict):
         try:
             expenses = jsonData["fundProfile"]["feesExpensesInvestment"]["annualReportExpenseRatio"]["fmt"]
         except:
-            expenses = "N/A" 
-      
+            expenses = "N/A"
+
+        compositionString = "N/A" 
+        try:
+            stockPosition = jsonData["topHoldings"]["stockPosition"]["fmt"]
+            compositionString = "Stocks: " + stockPosition
+        except:
+            stockPosition = "N/A"
+        try:
+            bondPosition = jsonData["topHoldings"]["bondPosition"]["fmt"]
+            compositionString += "\r\nBonds: " + bondPosition
+        except:
+            bondPosition = "N/A"
+
+        try:
+            preferredPosition = jsonData["topHoldings"]["preferredPosition"]["fmt"]
+            compositionString += "\r\nPreferred: " + preferredPosition
+        except:
+            preferredPosition = "N/A"
+        try:
+            convertiblePosition = jsonData["topHoldings"]["convertiblePosition"]["fmt"]
+            compositionString += "\r\nConvertible: " + convertiblePosition
+        except:
+            convertiblePosition = "N/A"
+        try:
+            cashPosition = jsonData["topHoldings"]["cashPosition"]["fmt"]
+            compositionString = "\r\nCash: " + cashPosition
+        except:
+            cashPosition = "N/A"
+        try:
+            otherPosition = jsonData["topHoldings"]["otherPosition"]["fmt"]
+            compositionString = "\r\Other: " + otherPosition
+        except:
+            otherPosition = "N/A"
+
             
-            
+        try:
+            sectorWeightings = jsonData["topHoldings"]["sectorWeightings"]
+            sectorWeightingsString = ""
+            for sector in sectorWeightings:
+                keys = sector.keys()
+                for key in keys:
+                    if sector[key]["raw"] == 0:
+                        continue
+                    else:
+                        sectorWeightingsString += key + ": " + sector[key]["fmt"] + "\r\n"
+            if sectorWeightingsString == "":
+                sectorWeightingsString = "N/A"
+        except:
+            sectorWeightingsString = "N/A"
+        try:
+            topHoldingTotalPct = 0
+            topHoldings = jsonData["topHoldings"]["holdings"]
+            topHoldingsString = ""
+            for holding in topHoldings:
+                symbolString = ""
+                if holding["symbol"]:
+                    symbolString = " (" + holding["symbol"] + ")"
+                topHoldingsString += holding["holdingName"] + symbolString + ": " + holding["holdingPercent"]["fmt"] + "\r\n"
+                topHoldingTotalPct += holding["holdingPercent"]["raw"]
+        except: 
+            topHoldingsString = "N/A"
+            topHoldingTotalPct = "N/A"
 
         print(longName, price)
         emojiIndicator = ""
@@ -479,6 +538,12 @@ def Do_ETF_Reply(jsonData: dict):
         message.add_field(name="Expense Ratio", value=expenses, inline=True)
 
         message.add_field(name="Performance", value="ytd: " + ytdReturn + "\r\n3yr: " + threeYearAverageReturn + "\r\n5yr: " + fiveYearAverageReturn, inline=True)
+
+        message.add_field(name="Composition ", value=compositionString, inline=True)
+
+        message.add_field(name="Sector Weightings", value=sectorWeightingsString, inline=True)
+
+        message.add_field(name="Top Holdings" + " ({:.2%})".format(topHoldingTotalPct), value=topHoldingsString, inline=True)
 
         message.set_image(url = styleBox)
 
