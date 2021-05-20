@@ -308,7 +308,7 @@ def Do_Equity_Reply(jsonData):
                             value=priceToBook, inline=True)
         message.add_field(name="Price to Sales",
                             value=priceToSales, inline=True)
-        message.add_field(name="Enterprise Value/EBITDA",
+        message.add_field(name="EV/EBITDA",
                             value=enterpriseToEbitda, inline=True)
         message.add_field(name="beta", value=beta, inline=True)
 
@@ -434,9 +434,9 @@ def Do_ETF_Reply(jsonData: dict):
         try:
             styleBox = jsonData["fundProfile"]["styleBoxUrl"]
         except:
-            styleBox = "N/A"
+            styleBox = ""
         try:
-            expenses = jsonData["fundProfile"]["feesExpensesInvestment"]["annualReportExpenseRatio"]
+            expenses = jsonData["fundProfile"]["feesExpensesInvestment"]["annualReportExpenseRatio"]["fmt"]
         except:
             expenses = "N/A" 
       
@@ -473,6 +473,14 @@ def Do_ETF_Reply(jsonData: dict):
         message.add_field(name="beta", value=beta, inline=True)
 
         message.add_field(name="Fund Inception Date", value=fundInceptionDate, inline=True)
+        
+        message.add_field(name="Yield", value=fundYield, inline=True)
+        
+        message.add_field(name="Expense Ratio", value=expenses, inline=True)
+
+        message.add_field(name="Performance", value="ytd: " + ytdReturn + "\r\n3yr: " + threeYearAverageReturn + "\r\n5yr: " + fiveYearAverageReturn, inline=True)
+
+        message.set_image(url = styleBox)
 
         message.add_field(name="MorningStar ETF Performance",
                             value=f"https://www.morningstar.com/etfs/arcx/{symbol}/performance", inline=False)
