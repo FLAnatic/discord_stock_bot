@@ -15,7 +15,7 @@ import pandas as pd
 import mplfinance as mpf
 import random
 
-testing = True
+testing = False
 
 help_text = """
 
