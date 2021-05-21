@@ -416,7 +416,7 @@ def Do_ETF_Reply(jsonData: dict):
         except:
             totalAssets = "N/A"
         try:
-            fundYield = jsonData["defaultKeyStatistics"]["yield"]["fmt"]
+            fundYield = jsonData["summaryDetail"]["yield"]["fmt"]
         except:
             fundYield = "N/A"
         try:
