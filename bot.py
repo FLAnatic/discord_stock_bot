@@ -444,6 +444,12 @@ def Do_ETF_Reply(jsonData: dict):
         except:
             fiveYearAverageReturn = "N/A"
         try:
+            tenYearAverageReturn = "N/A"
+            if jsonData["fundPerformance"]["trailingReturns"]["tenYear"]["raw"]:
+                tenYearAverageReturn = jsonData["fundPerformance"]["trailingReturns"]["tenYear"]["fmt"]
+        except:
+            tenYearAverageReturn = "N/A"
+        try:
             styleBox = jsonData["fundProfile"]["styleBoxUrl"]
         except:
             styleBox = ""
@@ -558,7 +564,8 @@ def Do_ETF_Reply(jsonData: dict):
         
         message.add_field(name="Expense Ratio", value=expenses, inline=True)
 
-        message.add_field(name="Performance", value="ytd: " + ytdReturn + "\r\n1yr: " + oneYearAverageReturn + "\r\n3yr: " + threeYearAverageReturn + "\r\n5yr: " + fiveYearAverageReturn, inline=True)
+        message.add_field(name="Performance", value="ytd: " + ytdReturn + "\r\n1yr: " + oneYearAverageReturn + "\r\n3yr: " + threeYearAverageReturn 
+                                                   + "\r\n5yr: " + fiveYearAverageReturn+ "\r\n10yr: " + tenYearAverageReturn, inline=True)
 
         message.add_field(name="Composition ", value=compositionString, inline=True)
 
