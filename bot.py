@@ -408,7 +408,7 @@ def Do_ETF_Reply(jsonData: dict):
         except:
             fundInceptionDate = "N/A"
         try:
-            fundFamily = jsonData["fundProfile"]["fundFamily"]
+            fundFamily = jsonData["fundProfile"]["family"]
         except:
             fundFamily = "N/A"
         try:
