@@ -408,7 +408,7 @@ def Do_ETF_Reply(jsonData: dict):
         except:
             fundInceptionDate = "N/A"
         try:
-            fundFamily = jsonData["defaultKeyStatistics"]["fundFamily"]
+            fundFamily = jsonData["fundProfile"]["fundFamily"]
         except:
             fundFamily = "N/A"
         try:
@@ -420,15 +420,27 @@ def Do_ETF_Reply(jsonData: dict):
         except:
             fundYield = "N/A"
         try:
-            ytdReturn = jsonData["defaultKeyStatistics"]["ytdReturn"]["fmt"]
+            ytdReturn = "N/A"
+            if jsonData["fundPerformance"]["trailingReturns"]["ytd"]["raw"]:
+                ytdReturn = jsonData["fundPerformance"]["trailingReturns"]["ytd"]["fmt"]
         except:
             ytdReturn = "N/A"
         try:
-            threeYearAverageReturn = jsonData["defaultKeyStatistics"]["threeYearAverageReturn"]["fmt"]
+            oneYearAverageReturn = "N/A"
+            if jsonData["fundPerformance"]["trailingReturns"]["oneYear"]["raw"]:
+                oneYearAverageReturn = jsonData["fundPerformance"]["trailingReturns"]["oneYear"]["fmt"]
+        except:
+            oneYearAverageReturn = "N/A"
+        try:
+            threeYearAverageReturn = "N/A"
+            if jsonData["fundPerformance"]["trailingReturns"]["threeYear"]["raw"]:
+                threeYearAverageReturn = jsonData["fundPerformance"]["trailingReturns"]["threeYear"]["fmt"]
         except:
             threeYearAverageReturn = "N/A"
         try:
-            fiveYearAverageReturn = jsonData["defaultKeyStatistics"]["fiveYearAverageReturn"]["fmt"]
+            fiveYearAverageReturn = "N/A"
+            if jsonData["fundPerformance"]["trailingReturns"]["fiveYear"]["raw"]:
+                fiveYearAverageReturn = jsonData["fundPerformance"]["trailingReturns"]["fiveYear"]["fmt"]
         except:
             fiveYearAverageReturn = "N/A"
         try:
@@ -443,33 +455,39 @@ def Do_ETF_Reply(jsonData: dict):
         compositionString = "N/A" 
         try:
             stockPosition = jsonData["topHoldings"]["stockPosition"]["fmt"]
-            compositionString = "Stocks: " + stockPosition
+            if jsonData["topHoldings"]["stockPosition"]["raw"]:
+                compositionString = "Stocks: " + stockPosition
         except:
             stockPosition = "N/A"
         try:
             bondPosition = jsonData["topHoldings"]["bondPosition"]["fmt"]
-            compositionString += "\r\nBonds: " + bondPosition
+            if jsonData["topHoldings"]["bondPosition"]["raw"]:
+                compositionString += "\r\nBonds: " + bondPosition
         except:
             bondPosition = "N/A"
 
         try:
             preferredPosition = jsonData["topHoldings"]["preferredPosition"]["fmt"]
-            compositionString += "\r\nPreferred: " + preferredPosition
+            if jsonData["topHoldings"]["preferredPosition"]["raw"]:
+                compositionString += "\r\nPreferred: " + preferredPosition
         except:
             preferredPosition = "N/A"
         try:
             convertiblePosition = jsonData["topHoldings"]["convertiblePosition"]["fmt"]
-            compositionString += "\r\nConvertible: " + convertiblePosition
+            if jsonData["topHoldings"]["convertiblePosition"]["raw"]:
+                compositionString += "\r\nConvertible: " + convertiblePosition
         except:
             convertiblePosition = "N/A"
         try:
             cashPosition = jsonData["topHoldings"]["cashPosition"]["fmt"]
-            compositionString = "\r\nCash: " + cashPosition
+            if jsonData["topHoldings"]["cashPosition"]["raw"]:
+                compositionString += "\r\nCash: " + cashPosition
         except:
             cashPosition = "N/A"
         try:
             otherPosition = jsonData["topHoldings"]["otherPosition"]["fmt"]
-            compositionString = "\r\Other: " + otherPosition
+            if jsonData["topHoldings"]["otherPosition"]["raw"]:
+                compositionString += "\r\nOther: " + otherPosition
         except:
             otherPosition = "N/A"
 
@@ -504,10 +522,13 @@ def Do_ETF_Reply(jsonData: dict):
 
         print(longName, price)
         emojiIndicator = ""
-        if regularMarketDayChangePctRaw > 0.05:
-            emojiIndicator = ":rocket:"
-        elif regularMarketDayChangePctRaw < -0.05:
-            emojiIndicator = ":skull:"
+        try:
+            if regularMarketDayChangePctRaw > 0.05:
+                emojiIndicator = ":rocket:"
+            elif regularMarketDayChangePctRaw < -0.05:
+                emojiIndicator = ":skull:"
+        except:
+            emojiIndicator = ""
 
         description = f"**${price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
         if marketState == "POST":
@@ -537,7 +558,7 @@ def Do_ETF_Reply(jsonData: dict):
         
         message.add_field(name="Expense Ratio", value=expenses, inline=True)
 
-        message.add_field(name="Performance", value="ytd: " + ytdReturn + "\r\n3yr: " + threeYearAverageReturn + "\r\n5yr: " + fiveYearAverageReturn, inline=True)
+        message.add_field(name="Performance", value="ytd: " + ytdReturn + "\r\n1yr: " + oneYearAverageReturn + "\r\n3yr: " + threeYearAverageReturn + "\r\n5yr: " + fiveYearAverageReturn, inline=True)
 
         message.add_field(name="Composition ", value=compositionString, inline=True)
 
@@ -556,7 +577,7 @@ def Do_ETF_Reply(jsonData: dict):
 
 def Do_Fund_Reply(jsonData: dict):
     """ formulate a reply specifically for an Mutual Fund quote type """
-    return Do_Equity_Reply(jsonData)
+    return Do_ETF_Reply(jsonData)
 
 def price_reply(symbols: list) -> Dict[str, str]:
     """ for all symbols in provided list query yahoo finance, parse the data and send an embed reponse or an error message in case of failure """
