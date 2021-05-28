@@ -14,8 +14,9 @@ import datetime
 import pandas as pd
 import mplfinance as mpf
 import random
+import numpy as np
 
-testing = False
+testing = True
 
 help_text = """
 
@@ -109,6 +110,7 @@ def Do_Equity_Reply(jsonData):
         symbol = jsonData["quoteType"]["symbol"]
         marketState = jsonData["price"]["marketState"]
         price = jsonData["price"]["regularMarketPrice"]["fmt"]
+        print("Equity Reply: ",longName, price)
         try:
             preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
             preMarketChangeRaw = jsonData["price"]["preMarketChange"]["raw"]
@@ -275,7 +277,6 @@ def Do_Equity_Reply(jsonData):
                             f"Short % of Float: {shortPercentOfFloat}.\r\n"
                             f"http://www.openinsider.com/{symbol}")
 
-        print(longName, price)
         emojiIndicator = ""
         if regularMarketDayChangePctRaw > 0.05:
             emojiIndicator = ":rocket:"
@@ -795,6 +796,93 @@ def parseTimestamp(inputdata):
     
     return calendertime
 
+def macdBuySellMarkers(histogram):
+    sigBuy = []
+    sigSell = []
+    previous = None
+    for date, value in histogram.iteritems():
+        if previous == None:
+            previous = value
+            sigBuy.append(np.nan)
+            sigSell.append(np.nan)
+        else:
+            if previous < 0 and value > 0:
+                sigBuy.append(-0.75)
+                sigSell.append(np.nan)
+            elif previous > 0 and value < 0:
+                sigSell.append(0.75)
+                sigBuy.append(np.nan)
+            else:
+                sigBuy.append(np.nan)
+                sigSell.append(np.nan)
+        previous = value
+    return sigBuy,sigSell
+
+def movavgBuySellMarkers(priceline,ma):
+    sigBuy = []
+    sigSell = []
+    previousma = None
+    previousPrice = None
+    for date, value in ma.iteritems():
+        if previousma == None:
+            previousma = value
+            previousPrice = priceline[date]
+            sigBuy.append(np.nan)
+            sigSell.append(np.nan)
+        else:
+            price = priceline[date]
+
+            if previousPrice <= previousma and price > value:
+                sigBuy.append(ma[date]*.99)
+                sigSell.append(np.nan)
+            elif previousPrice >= previousma and price < value:
+                sigSell.append(ma[date]*1.01)
+                sigBuy.append(np.nan)
+            else:
+                sigBuy.append(np.nan)
+                sigSell.append(np.nan)
+        previousma = value
+        previousPrice = priceline[date]
+    return sigBuy,sigSell
+
+def calcStochasticKLine(df):
+    kLine = []
+    l14 = []
+    h14 = []
+    for date,value in df['Close'].iteritems():
+        if len(l14) < 14:
+            l14.append(df['Low'][date])
+            h14.append(df['High'][date])
+        if len(l14) == 14:
+            l14.append(df['Low'][date])
+            h14.append(df['High'][date])
+            kValue = 100 * ( (value - min(l14)) / (max(h14) - min(l14)) )
+            kLine.append(kValue)
+            l14.pop(0)
+            h14.pop(0)
+        elif len(l14) < 14:
+            kLine.append(np.nan)
+    return kLine
+
+def calcStochasticDLine(df):
+    dLine = []
+    l3 = []
+    h3 = []
+    for date,value in df['Close'].iteritems():
+        if len(l3) < 3:
+            l3.append(df['Low'][date])
+            h3.append(df['High'][date])
+        if len(l3) == 3:
+            l3.append(df['Low'][date])
+            h3.append(df['High'][date])
+            kValue = 100 * ( (value - min(l3)) / (max(h3) - min(l3)) )
+            dLine.append(kValue)
+            l3.pop(0)
+            h3.pop(0)
+        elif len(l3) < 3:
+            dLine.append(np.nan)
+    return dLine
+
 @bot.command()
 async def chart(ctx, sym: str):
     """Generate 3 month chart for request stock."""
@@ -804,14 +892,28 @@ async def chart(ctx, sym: str):
         except:
             message = f"Could not find a valid symbol to look up."
             return
+        print("Chart: ",symbol)
         filename = str(symbol).lower() +".png"
         filePath = chartsFolder + '/' + filename
         if os.path.isfile(filePath):
             await ctx.send(file=discord.File(filePath))
             return
         else:
+            chartData = None
+            if testing is True:
+                try:
+                    F=open("chart.dat","rb")
+                    chartData = F.read()
+                    F.close()
+                except:
+                   chartData = None 
             #build the chart and save it
-            chartData = fetchChartData(symbol,"1d","3mo")
+            if chartData is None:
+                chartData = fetchChartData(symbol,"1d","3mo")
+                if testing is True:
+                    F=open("chart.dat","wb")
+                    F.write(chartData)
+                    F.close()
             try:
                 if not len(chartData):
                     message = f"Could not find chart information for ${symbol}."
@@ -847,25 +949,40 @@ async def chart(ctx, sym: str):
                 df = pd.DataFrame(inputdata)
                 df['Datetime'] = pd.to_datetime(inputdata["DateTime"], format='%Y-%m-%d %H:%M:%S')
                 df = df.set_index(pd.DatetimeIndex(df['Datetime']))
+                priceLine = df['Close']
+                ma = df['Close'].rolling(10).mean()
                 exp8 = df['Close'].ewm(span=8, adjust=False).mean()
                 exp17 = df['Close'].ewm(span=17, adjust=False).mean()
                 macd = exp8 - exp17
                 signal    = macd.ewm(span=9, adjust=False).mean()
                 histogram = macd - signal
+
+                macdSigBuy,macdSigSell = macdBuySellMarkers(histogram)
+                movavgSigBuy,movavgSigSell = movavgBuySellMarkers(priceLine,ma)
+                df['KLine'] = calcStochasticKLine(df)
+                stochasticKLine = df['KLine'].rolling(3).mean()
+                stochasticDLine = stochasticKLine.rolling(3).mean() #calcStochasticDLine(df)
                 macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD(8,17,9)'),
-                            mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True),
-                            mpf.make_addplot(signal,panel=1,color='b',secondary_y=True),
+                            mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
+                            mpf.make_addplot(signal,panel=1,color='b',secondary_y=True,width=0.5),
+                            mpf.make_addplot(macdSigBuy,panel=1,color='g',type='scatter',markersize=100,marker='^'),
+                            mpf.make_addplot(macdSigSell,panel=1,color='r',type='scatter',markersize=100,marker='v'),
+                            mpf.make_addplot(ma,panel=0,color='c',width=0.5),
+                            mpf.make_addplot(priceLine,panel=0,color='black',width=0.2),
+                            mpf.make_addplot(movavgSigBuy,panel=0,color='g',type='scatter',markersize=100,marker='^'),
+                            mpf.make_addplot(movavgSigSell,panel=0,color='r',type='scatter',markersize=100,marker='v'),
+                            mpf.make_addplot(stochasticKLine,panel=2,color='black',width=0.5),
+                            mpf.make_addplot(stochasticDLine,panel=2,color='red',width=0.5),
                 ]
             
                 mpf.plot(
                     df,
                     type="candle",
                     addplot=macdPlot,
-                    mav=10,
                     title=f"\n{symbol.upper()}",
                     volume=True,
-                    volume_panel=2,
-                    panel_ratios=(4,2,1),
+                    volume_panel=3,
+                    panel_ratios=(4,2,2,1),
                     style="default",
                     figscale=1.1,
                     figratio=(8,5),
