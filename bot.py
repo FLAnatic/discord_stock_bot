@@ -775,7 +775,7 @@ def fetchChartData(symbol,intervalIn,rangeIn):
         res = conn.getresponse()
     except:
         message = f"An error occured trying to retrive chart information for ${symbol}. Could not get a response from the remote server."
-        return NULL
+        return None
   
     if(res.code == 200):
         return res.read()
@@ -807,10 +807,10 @@ def macdBuySellMarkers(histogram):
             sigSell.append(np.nan)
         else:
             if previous < 0 and value > 0:
-                sigBuy.append(-0.75)
+                sigBuy.append(value*0.99)
                 sigSell.append(np.nan)
             elif previous > 0 and value < 0:
-                sigSell.append(0.75)
+                sigSell.append(value*1.01)
                 sigBuy.append(np.nan)
             else:
                 sigBuy.append(np.nan)
@@ -887,7 +887,7 @@ def calcStochasticDLine(df):
             dLine.append(np.nan)
     return dLine
 
-def stockBuySellMarkers(stochasticKLine,stochasticDLine):
+def stochBuySellMarkers(stochasticKLine,stochasticDLine):
     stochSigBuy = []
     stochSigSell = []
     kPrev = None
@@ -991,10 +991,10 @@ async def chart(ctx, sym: str):
 
                 macdSigBuy,macdSigSell = macdBuySellMarkers(histogram)
                 movavgSigBuy,movavgSigSell = movavgBuySellMarkers(priceLine,ma)                
-                stochasticKLine,stochasticDLine = calcStochastics(df,14,3,5)
+                stochasticKLine,stochasticDLine = calcStochastics(df,14,3,3)
                 stochasticOverboughtLine = [80] * len(stochasticKLine)
                 stochasticUnderboughtLine = [20] * len(stochasticKLine)
-                stochSigBuy,stochSigSell = stockBuySellMarkers(stochasticKLine,stochasticDLine)
+                stochSigBuy,stochSigSell = stochBuySellMarkers(stochasticKLine,stochasticDLine)
 
                 macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
                             mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
