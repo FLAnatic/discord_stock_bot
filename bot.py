@@ -16,7 +16,7 @@ import mplfinance as mpf
 import random
 import numpy as np
 
-testing = True
+testing = False
 
 help_text = """
 
@@ -845,24 +845,28 @@ def movavgBuySellMarkers(priceline,ma):
         previousPrice = priceline[date]
     return sigBuy,sigSell
 
-def calcStochasticKLine(df):
+def calcStochastics(df,period,kavg,davg):
     kLine = []
     l14 = []
     h14 = []
     for date,value in df['Close'].iteritems():
-        if len(l14) < 14:
+        if len(l14) < period:
             l14.append(df['Low'][date])
             h14.append(df['High'][date])
-        if len(l14) == 14:
+        if len(l14) == period:
             l14.append(df['Low'][date])
             h14.append(df['High'][date])
             kValue = 100 * ( (value - min(l14)) / (max(h14) - min(l14)) )
             kLine.append(kValue)
             l14.pop(0)
             h14.pop(0)
-        elif len(l14) < 14:
+        elif len(l14) < period:
             kLine.append(np.nan)
-    return kLine
+    
+    df['KLine'] = kLine
+    stochasticKLine = df['KLine'].rolling(kavg).mean()
+    stochasticDLine = stochasticKLine.rolling(davg).mean()
+    return stochasticKLine,stochasticDLine
 
 def calcStochasticDLine(df):
     dLine = []
@@ -882,6 +886,34 @@ def calcStochasticDLine(df):
         elif len(l3) < 3:
             dLine.append(np.nan)
     return dLine
+
+def stockBuySellMarkers(stochasticKLine,stochasticDLine):
+    stochSigBuy = []
+    stochSigSell = []
+    kPrev = None
+    dPrev = None
+    for date,kval in stochasticKLine.iteritems():
+        dval = stochasticDLine[date]
+        if kPrev is None:
+            kPrev = kval
+            dPrev = dval
+            stochSigBuy.append(np.nan)
+            stochSigSell.append(np.nan)
+        else:
+            if (kval > dval) and (kPrev <= dPrev):
+                stochSigBuy.append(stochasticKLine[date]-5)
+                stochSigSell.append(np.nan)
+            elif (kval < dval) and (kPrev >= dPrev):
+                stochSigSell.append(stochasticKLine[date]+5)
+                stochSigBuy.append(np.nan)
+            else:
+                stochSigBuy.append(np.nan)
+                stochSigSell.append(np.nan) 
+        
+        kPrev = kval
+        dPrev = dval
+
+    return stochSigBuy,stochSigSell
 
 @bot.command()
 async def chart(ctx, sym: str):
@@ -958,21 +990,27 @@ async def chart(ctx, sym: str):
                 histogram = macd - signal
 
                 macdSigBuy,macdSigSell = macdBuySellMarkers(histogram)
-                movavgSigBuy,movavgSigSell = movavgBuySellMarkers(priceLine,ma)
-                df['KLine'] = calcStochasticKLine(df)
-                stochasticKLine = df['KLine'].rolling(3).mean()
-                stochasticDLine = stochasticKLine.rolling(3).mean() #calcStochasticDLine(df)
-                macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD(8,17,9)'),
+                movavgSigBuy,movavgSigSell = movavgBuySellMarkers(priceLine,ma)                
+                stochasticKLine,stochasticDLine = calcStochastics(df,14,3,5)
+                stochasticOverboughtLine = [80] * len(stochasticKLine)
+                stochasticUnderboughtLine = [20] * len(stochasticKLine)
+                stochSigBuy,stochSigSell = stockBuySellMarkers(stochasticKLine,stochasticDLine)
+
+                macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
                             mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
                             mpf.make_addplot(signal,panel=1,color='b',secondary_y=True,width=0.5),
-                            mpf.make_addplot(macdSigBuy,panel=1,color='g',type='scatter',markersize=100,marker='^'),
-                            mpf.make_addplot(macdSigSell,panel=1,color='r',type='scatter',markersize=100,marker='v'),
+                            mpf.make_addplot(macdSigBuy,panel=1,color='g',type='scatter',markersize=50,marker='^'),
+                            mpf.make_addplot(macdSigSell,panel=1,color='r',type='scatter',markersize=50,marker='v'),
                             mpf.make_addplot(ma,panel=0,color='c',width=0.5),
                             mpf.make_addplot(priceLine,panel=0,color='black',width=0.2),
-                            mpf.make_addplot(movavgSigBuy,panel=0,color='g',type='scatter',markersize=100,marker='^'),
-                            mpf.make_addplot(movavgSigSell,panel=0,color='r',type='scatter',markersize=100,marker='v'),
-                            mpf.make_addplot(stochasticKLine,panel=2,color='black',width=0.5),
-                            mpf.make_addplot(stochasticDLine,panel=2,color='red',width=0.5),
+                            mpf.make_addplot(movavgSigBuy,panel=0,color='g',type='scatter',markersize=50,marker='^'),
+                            mpf.make_addplot(movavgSigSell,panel=0,color='r',type='scatter',markersize=50,marker='v'),
+                            mpf.make_addplot(stochasticKLine,panel=2,color='black',width=0.5,ylabel='Stoch'),
+                            mpf.make_addplot(stochasticDLine,panel=2,color='red',width=0.5,secondary_y=False),
+                            mpf.make_addplot(stochasticOverboughtLine,panel=2,secondary_y=False,color='grey',width=0.4),
+                            mpf.make_addplot(stochasticUnderboughtLine,panel=2,secondary_y=False,color='grey',width=0.4),
+                            mpf.make_addplot(stochSigBuy,panel=2,color='g',type='scatter',markersize=50,marker='^',secondary_y=False),
+                            mpf.make_addplot(stochSigSell,panel=2,color='r',type='scatter',markersize=50,marker='v',secondary_y=False),
                 ]
             
                 mpf.plot(
