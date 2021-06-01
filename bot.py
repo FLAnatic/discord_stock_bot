@@ -272,10 +272,12 @@ def Do_Equity_Reply(jsonData):
 
         insiderPurchases = (f"Purchases: {buyInfoShares} shares in {buyInfoCount} transactions.\r\n" +
                             f"Sales: {sellInfoShares} shares in {sellInfoCount} transactions.")
+                        
+        insiderSymbol = symbol.replace('-','')
         insiderHolding = (f"% Held by Insiders: {insiderPercentHeld}.\r\n" +
                             f"% Held by Institutions: {institutionPercentHeld}.\r\n" +
                             f"Short % of Float: {shortPercentOfFloat}.\r\n"
-                            f"http://www.openinsider.com/{symbol}")
+                            f"http://www.openinsider.com/{insiderSymbol}")
 
         emojiIndicator = ""
         if regularMarketDayChangePctRaw > 0.05:
@@ -320,8 +322,9 @@ def Do_Equity_Reply(jsonData):
 
         message.add_field(name="Share Statistics",
                             value=insiderHolding, inline=False)
+        morningstarSymbol = symbol.replace('-','.')
         message.add_field(name="MorningStar Key Ratios",
-                            value=f"http://financials.morningstar.com/ratios/r.html?t={symbol}", inline=False)
+                            value=f"http://financials.morningstar.com/ratios/r.html?t={morningstarSymbol}", inline=False)
     except:
         message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
     
@@ -575,9 +578,10 @@ def Do_ETF_Reply(jsonData: dict):
         message.add_field(name="Top Holdings" + " ({:.2%})".format(topHoldingTotalPct), value=topHoldingsString, inline=True)
 
         message.set_image(url = styleBox)
-
+        
+        morningstarSymbol = symbol.replace('-','.')
         message.add_field(name="MorningStar ETF Performance",
-                            value=f"https://www.morningstar.com/etfs/arcx/{symbol}/performance", inline=False)
+                            value=f"https://www.morningstar.com/etfs/arcx/{morningstarSymbol}/performance", inline=False)
     except:
         message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
     
