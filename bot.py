@@ -915,6 +915,14 @@ def stochBuySellMarkers(stochasticKLine,stochasticDLine):
 
     return stochSigBuy,stochSigSell
 
+def calcMACD(closeData,fastMAPeriod,slowMAPeriod,signalPeriod):
+    exp8 = closeData.ewm(span=fastMAPeriod, adjust=False).mean()
+    exp17 = closeData.ewm(span=slowMAPeriod, adjust=False).mean()
+    macd = exp8 - exp17
+    signal = macd.ewm(span=signalPeriod, adjust=False).mean()
+    histogram = macd - signal
+    return macd,signal,histogram
+
 @bot.command()
 async def chart(ctx, sym: str):
     """Generate 3 month chart for request stock."""
@@ -981,20 +989,18 @@ async def chart(ctx, sym: str):
                 df = pd.DataFrame(inputdata)
                 df['Datetime'] = pd.to_datetime(inputdata["DateTime"], format='%Y-%m-%d %H:%M:%S')
                 df = df.set_index(pd.DatetimeIndex(df['Datetime']))
-                priceLine = df['Close']
-                ma = df['Close'].rolling(10).mean()
-                exp8 = df['Close'].ewm(span=8, adjust=False).mean()
-                exp17 = df['Close'].ewm(span=17, adjust=False).mean()
-                macd = exp8 - exp17
-                signal    = macd.ewm(span=9, adjust=False).mean()
-                histogram = macd - signal
-
+                closeData = df['Close']
+                # 10 day moving average for price chart
+                ma = closeData.rolling(10).mean()
+                #generate MACD chart data
+                macd,signal,histogram = calcMACD(closeData,8,17,9)
                 macdSigBuy,macdSigSell = macdBuySellMarkers(histogram)
-                movavgSigBuy,movavgSigSell = movavgBuySellMarkers(priceLine,ma)                
+                movavgSigBuy,movavgSigSell = movavgBuySellMarkers(closeData,ma)    
+                # generate stochastics chart data            
                 stochasticKLine,stochasticDLine = calcStochastics(df,14,3,3)
+                stochSigBuy,stochSigSell = stochBuySellMarkers(stochasticKLine,stochasticDLine)
                 stochasticOverboughtLine = [80] * len(stochasticKLine)
                 stochasticUnderboughtLine = [20] * len(stochasticKLine)
-                stochSigBuy,stochSigSell = stochBuySellMarkers(stochasticKLine,stochasticDLine)
 
                 macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
                             mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
@@ -1002,7 +1008,7 @@ async def chart(ctx, sym: str):
                             mpf.make_addplot(macdSigBuy,panel=1,color='g',type='scatter',markersize=50,marker='^'),
                             mpf.make_addplot(macdSigSell,panel=1,color='r',type='scatter',markersize=50,marker='v'),
                             mpf.make_addplot(ma,panel=0,color='c',width=0.5),
-                            mpf.make_addplot(priceLine,panel=0,color='black',width=0.2),
+                            mpf.make_addplot(closeData,panel=0,color='black',width=0.2),
                             mpf.make_addplot(movavgSigBuy,panel=0,color='g',type='scatter',markersize=50,marker='^'),
                             mpf.make_addplot(movavgSigSell,panel=0,color='r',type='scatter',markersize=50,marker='v'),
                             mpf.make_addplot(stochasticKLine,panel=2,color='black',width=0.5,ylabel='Stoch'),
