@@ -920,12 +920,23 @@ def stochBuySellMarkers(stochasticKLine,stochasticDLine):
     return stochSigBuy,stochSigSell
 
 def calcMACD(closeData,fastMAPeriod,slowMAPeriod,signalPeriod):
-    exp8 = closeData.ewm(span=fastMAPeriod, adjust=False).mean()
-    exp17 = closeData.ewm(span=slowMAPeriod, adjust=False).mean()
-    macd = exp8 - exp17
+    expFast = closeData.ewm(span=fastMAPeriod, adjust=False).mean()
+    expSlow = closeData.ewm(span=slowMAPeriod, adjust=False).mean()
+    macd = expFast - expSlow
     signal = macd.ewm(span=signalPeriod, adjust=False).mean()
     histogram = macd - signal
     return macd,signal,histogram
+
+def calcRSI(closeData):
+    delta = closeData.diff()
+    up = delta.clip(lower=0)
+    down = -1*delta.clip(upper=0)
+    ema_up = up.ewm(com=13, adjust=False).mean()
+    ema_down = down.ewm(com=13, adjust=False).mean()
+    rs = ema_up/ema_down
+    rsi = (100 - (100/(1 + rs)))
+    rsi.loc[:12] = np.nan
+    return rsi
 
 @bot.command()
 async def chart(ctx, sym: str):
@@ -1005,6 +1016,10 @@ async def chart(ctx, sym: str):
                 stochSigBuy,stochSigSell = stochBuySellMarkers(stochasticKLine,stochasticDLine)
                 stochasticOverboughtLine = [80] * len(stochasticKLine)
                 stochasticUnderboughtLine = [20] * len(stochasticKLine)
+                # generate RSI chart
+                rsi = calcRSI(closeData)
+                rsiOverboughtLine = [70] * len(rsi)
+                rsiUnderboughtLine = [30] * len(rsi)
 
                 macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
                             mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
@@ -1021,6 +1036,9 @@ async def chart(ctx, sym: str):
                             mpf.make_addplot(stochasticUnderboughtLine,panel=2,secondary_y=False,color='grey',width=0.4),
                             mpf.make_addplot(stochSigBuy,panel=2,color='g',type='scatter',markersize=50,marker='^',secondary_y=False),
                             mpf.make_addplot(stochSigSell,panel=2,color='r',type='scatter',markersize=50,marker='v',secondary_y=False),
+                            mpf.make_addplot(rsi,panel=3,color='red',width=0.5,secondary_y=False,ylabel='RSI'),
+                            mpf.make_addplot(rsiOverboughtLine,panel=3,secondary_y=False,color='grey',width=0.4),
+                            mpf.make_addplot(rsiUnderboughtLine,panel=3,secondary_y=False,color='grey',width=0.4),
                 ]
             
                 mpf.plot(
@@ -1029,8 +1047,8 @@ async def chart(ctx, sym: str):
                     addplot=macdPlot,
                     title=f"\n{symbol.upper()}",
                     volume=True,
-                    volume_panel=3,
-                    panel_ratios=(4,2,2,1),
+                    volume_panel=4,
+                    panel_ratios=(4,2,2,2,1),
                     style="default",
                     figscale=1.1,
                     figratio=(8,5),
