@@ -727,7 +727,7 @@ async def on_message(message):
             return
 
 def CleanUpSavedCharts():
-    """delete all saved charts """
+    """delete all saved charts and files """
     for filename in os.listdir(chartsFolder):
         file_path = os.path.join(chartsFolder, filename)
         try:
@@ -938,6 +938,54 @@ def calcRSI(closeData):
     rsi.iloc[:12] = np.nan
     return rsi
 
+def generateChartBuySellMessage(priceData,macdSigBuy,macdSigSell,stochSigBuy,stochSigSell,movavgSigBuy,movavgSigSell,chartMsgPath):
+    retMsg = ""
+    sigBuyCount = 0
+    sigSellCount = 0
+    buySellSignal = []
+    index = 0
+    for date,value in priceData.iteritems():
+        val =  macdSigBuy[index]
+        if not np.isnan(macdSigBuy[index]):
+            sigSellCount = 0
+            sigBuyCount += 1
+        elif not np.isnan(macdSigSell[index]):
+            sigBuyCount = 0
+            sigSellCount += 1
+        if not np.isnan(stochSigBuy[index]):
+            sigSellCount = 0
+            sigBuyCount += 1
+        elif not np.isnan(stochSigSell[index]):
+            sigBuyCount = 0
+            sigSellCount += 1
+        if not np.isnan(movavgSigBuy[index]):
+            sigSellCount = 0
+            sigBuyCount += 1
+        elif not np.isnan(movavgSigSell[index]):
+            sigBuyCount = 0
+            sigSellCount += 1
+        if sigBuyCount == 3:
+            sigSellCount = 0
+            sigBuyCount = 0
+            buySellSignal.append((":green_circle::chart_with_upwards_trend:Buy",date,value))
+        elif sigSellCount == 3:
+            sigSellCount = 0
+            sigBuyCount = 0
+            buySellSignal.append((":red_circle::chart_with_downwards_trend:Sell",date,value))
+        index += 1
+                
+
+    for buySellstring,date,value in buySellSignal:
+        price = "${:.2f}".format(value)
+        retMsg += f"{buySellstring} Date: {date} Price: {price}\n"
+    try:
+        F=open(chartMsgPath,"w")
+        F.write(retMsg)
+        F.close()
+    except:
+        pass
+    return retMsg
+
 @bot.command()
 async def chart(ctx, sym: str):
     """Generate 3 month chart for request stock."""
@@ -948,10 +996,19 @@ async def chart(ctx, sym: str):
             message = f"Could not find a valid symbol to look up."
             return
         print("Chart: ",symbol)
-        filename = str(symbol).lower() +".png"
-        filePath = chartsFolder + '/' + filename
-        if os.path.isfile(filePath):
-            await ctx.send(file=discord.File(filePath))
+        chartName = str(symbol).lower() +".png"
+        chartImgPath = chartsFolder + '/' + chartName
+        chartMsgName = str(symbol).lower() +".txt"
+        chartMsgPath = chartsFolder + '/' + chartMsgName
+        if os.path.isfile(chartImgPath) and os.path.isfile(chartMsgPath):
+            try:
+                F=open(chartMsgPath,"r")
+                chartMsg = F.read()
+                F.close()
+            except:
+                chartMsg = "" 
+            await ctx.send(file=discord.File(chartImgPath))
+            await ctx.send(chartMsg)
             return
         else:
             chartData = None
@@ -1020,51 +1077,7 @@ async def chart(ctx, sym: str):
                 rsi = calcRSI(closeData)
                 rsiOverboughtLine = [70] * len(rsi)
                 rsiUnderboughtLine = [30] * len(rsi)
-                
-                sigBuyCount = 0
-                sigSellCount = 0
-                buySignal = []
-                sellSignal = []
-                index = 0
-                for date,value in ma.iteritems():
-                    val =  macdSigBuy[index]
-                    if not np.isnan(macdSigBuy[index]):
-                        sigSellCount = 0
-                        sigBuyCount += 1
-                    elif not np.isnan(macdSigSell[index]):
-                        sigBuyCount = 0
-                        sigSellCount += 1
-                    if not np.isnan(stochSigBuy[index]):
-                        sigSellCount = 0
-                        sigBuyCount += 1
-                    elif not np.isnan(stochSigSell[index]):
-                        sigBuyCount = 0
-                        sigSellCount += 1
-                    if not np.isnan(movavgSigBuy[index]):
-                        sigSellCount = 0
-                        sigBuyCount += 1
-                    elif not np.isnan(movavgSigSell[index]):
-                        sigBuyCount = 0
-                        sigSellCount += 1
-                    if sigBuyCount == 3:
-                        sigSellCount = 0
-                        sigBuyCount = 0
-                        buySignal.append([date,value])
-                    elif sigSellCount == 3:
-                        sigSellCount = 0
-                        sigBuyCount = 0
-                        sellSignal.append([date,value])
-                    index += 1
-                
-                message = "BUY\r\n"
-                for date,value in buySignal:
-                    price = "${:.2f}".format(value)
-                    message += f"Date: {date} Price: {price}\r\n"
-                message += "SELL\r\n"
-                for date,value in sellSignal:
-                    price = "${:.2f}".format(value)
-                    message += f"Date: {date} Price: {price}\r\n"
-
+                chartBuySellMessage = generateChartBuySellMessage(closeData,macdSigBuy,macdSigSell,stochSigBuy,stochSigSell,movavgSigBuy,movavgSigSell,chartMsgPath)
                 macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
                             mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
                             mpf.make_addplot(signal,panel=1,color='b',secondary_y=True,width=0.5),
@@ -1096,10 +1109,10 @@ async def chart(ctx, sym: str):
                     style="default",
                     figscale=1.1,
                     figratio=(8,5),
-                    savefig=dict(fname=filePath, dpi=400, bbox_inches="tight")
+                    savefig=dict(fname=chartImgPath, dpi=400, bbox_inches="tight")
                 )
-                await ctx.send(file=discord.File(filePath))
-                await ctx.send(message)
+                await ctx.send(file=discord.File(chartImgPath))
+                await ctx.send(chartBuySellMessage)
 
             except:
                 message = f"Failed to generate chart data for ${symbol}."
