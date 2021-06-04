@@ -1026,7 +1026,7 @@ async def chart(ctx, sym: str):
                 buySignal = []
                 sellSignal = []
                 index = 0
-                for date,value in closeData.iteritems():
+                for date,value in ma.iteritems():
                     val =  macdSigBuy[index]
                     if not np.isnan(macdSigBuy[index]):
                         sigSellCount = 0
@@ -1049,12 +1049,21 @@ async def chart(ctx, sym: str):
                     if sigBuyCount == 3:
                         sigSellCount = 0
                         sigBuyCount = 0
-                        buySignal.append({date,value})
+                        buySignal.append([date,value])
                     elif sigSellCount == 3:
                         sigSellCount = 0
                         sigBuyCount = 0
-                        sellSignal.append({date,value})
+                        sellSignal.append([date,value])
                     index += 1
+                
+                message = "BUY\r\n"
+                for date,value in buySignal:
+                    price = "${:.2f}".format(value)
+                    message += f"Date: {date} Price: {price}\r\n"
+                message += "SELL\r\n"
+                for date,value in sellSignal:
+                    price = "${:.2f}".format(value)
+                    message += f"Date: {date} Price: {price}\r\n"
 
                 macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
                             mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
@@ -1090,6 +1099,8 @@ async def chart(ctx, sym: str):
                     savefig=dict(fname=filePath, dpi=400, bbox_inches="tight")
                 )
                 await ctx.send(file=discord.File(filePath))
+                await ctx.send(message)
+
             except:
                 message = f"Failed to generate chart data for ${symbol}."
                 await ctx.send(message)
