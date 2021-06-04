@@ -935,7 +935,7 @@ def calcRSI(closeData):
     ema_down = down.ewm(com=13, adjust=False).mean()
     rs = ema_up/ema_down
     rsi = (100 - (100/(1 + rs)))
-    rsi.loc[:12] = np.nan
+    rsi.iloc[:12] = np.nan
     return rsi
 
 @bot.command()
@@ -1020,6 +1020,41 @@ async def chart(ctx, sym: str):
                 rsi = calcRSI(closeData)
                 rsiOverboughtLine = [70] * len(rsi)
                 rsiUnderboughtLine = [30] * len(rsi)
+                
+                sigBuyCount = 0
+                sigSellCount = 0
+                buySignal = []
+                sellSignal = []
+                index = 0
+                for date,value in closeData.iteritems():
+                    val =  macdSigBuy[index]
+                    if not np.isnan(macdSigBuy[index]):
+                        sigSellCount = 0
+                        sigBuyCount += 1
+                    elif not np.isnan(macdSigSell[index]):
+                        sigBuyCount = 0
+                        sigSellCount += 1
+                    if not np.isnan(stochSigBuy[index]):
+                        sigSellCount = 0
+                        sigBuyCount += 1
+                    elif not np.isnan(stochSigSell[index]):
+                        sigBuyCount = 0
+                        sigSellCount += 1
+                    if not np.isnan(movavgSigBuy[index]):
+                        sigSellCount = 0
+                        sigBuyCount += 1
+                    elif not np.isnan(movavgSigSell[index]):
+                        sigBuyCount = 0
+                        sigSellCount += 1
+                    if sigBuyCount == 3:
+                        sigSellCount = 0
+                        sigBuyCount = 0
+                        buySignal.append({date,value})
+                    elif sigSellCount == 3:
+                        sigSellCount = 0
+                        sigBuyCount = 0
+                        sellSignal.append({date,value})
+                    index += 1
 
                 macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
                             mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
