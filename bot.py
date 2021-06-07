@@ -851,20 +851,20 @@ def movavgBuySellMarkers(priceline,ma):
 
 def calcStochastics(df,period,kavg,davg):
     kLine = []
-    l14 = []
-    h14 = []
+    lPeriod = []
+    hPeriod = []
     for date,value in df['Close'].iteritems():
-        if len(l14) < period:
-            l14.append(df['Low'][date])
-            h14.append(df['High'][date])
-        if len(l14) == period:
-            l14.append(df['Low'][date])
-            h14.append(df['High'][date])
-            kValue = 100 * ( (value - min(l14)) / (max(h14) - min(l14)) )
+        if len(lPeriod) < period:
+            lPeriod.append(df['Low'][date])
+            hPeriod.append(df['High'][date])
+        if len(lPeriod) == period:
+            lPeriod.append(df['Low'][date])
+            hPeriod.append(df['High'][date])
+            kValue = 100 * ( (value - min(lPeriod)) / (max(hPeriod) - min(lPeriod)) )
             kLine.append(kValue)
-            l14.pop(0)
-            h14.pop(0)
-        elif len(l14) < period:
+            lPeriod.pop(0)
+            hPeriod.pop(0)
+        elif len(lPeriod) < period:
             kLine.append(np.nan)
     
     df['KLine'] = kLine
