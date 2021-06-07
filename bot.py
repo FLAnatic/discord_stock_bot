@@ -938,46 +938,72 @@ def calcRSI(closeData):
     rsi.iloc[:12] = np.nan
     return rsi
 
-def generateChartBuySellMessage(priceData,macdSigBuy,macdSigSell,stochSigBuy,stochSigSell,movavgSigBuy,movavgSigSell,chartMsgPath):
+def generateChartBuySellMessage(priceData,macdSigBuy,macdSigSell,stochSigBuy,stochSigSell,movavgSigBuy,movavgSigSell,rsi,stochasticLine,chartMsgPath):
     retMsg = ""
-    sigBuyCount = 0
-    sigSellCount = 0
+    Sell = -1
+    Buy = 1
+    macdState = None
+    stochState = None
+    maState = None
+    lastSignal = None
     buySellSignal = []
     index = 0
     for date,value in priceData.iteritems():
         val =  macdSigBuy[index]
         if not np.isnan(macdSigBuy[index]):
-            sigSellCount = 0
-            sigBuyCount += 1
+            macdState = Buy
         elif not np.isnan(macdSigSell[index]):
-            sigBuyCount = 0
-            sigSellCount += 1
+            macdState = Sell
         if not np.isnan(stochSigBuy[index]):
-            sigSellCount = 0
-            sigBuyCount += 1
+            stochState = Buy
         elif not np.isnan(stochSigSell[index]):
-            sigBuyCount = 0
-            sigSellCount += 1
+            stochState = Sell
         if not np.isnan(movavgSigBuy[index]):
-            sigSellCount = 0
-            sigBuyCount += 1
+            maState = Buy
         elif not np.isnan(movavgSigSell[index]):
-            sigBuyCount = 0
-            sigSellCount += 1
-        if sigBuyCount == 3:
-            sigSellCount = 0
-            sigBuyCount = 0
+            maState = Sell
+        if macdState == Buy and stochState == Buy and maState == Buy and lastSignal != Buy:
             buySellSignal.append((":green_circle::chart_with_upwards_trend:Buy",date,value))
-        elif sigSellCount == 3:
-            sigSellCount = 0
-            sigBuyCount = 0
+            macdState = None
+            stochState = None
+            lastSignal = None
+            lastSignal = Buy
+        elif macdState == Sell and stochState == Sell and maState == Sell and lastSignal != Sell:
             buySellSignal.append((":red_circle::chart_with_downwards_trend:Sell",date,value))
+            macdState = None
+            stochState = None
+            lastSignal = None
+            lastSignal = Sell
         index += 1
                 
 
     for buySellstring,date,value in buySellSignal:
+        overBoughtSoldStr = ""
+        rsiStr = ""
+        stochStr = ""
+        rsiVal = rsi[date]
+        stochasticVal = stochasticLine[date]
+        if rsiVal >= 70 or stochasticVal >= 80:
+            if rsiVal >= 70:
+                rsiStr = "*rsi*"
+            if stochasticVal >= 80:
+                if len(rsiStr):
+                    stochStr = "*+stoch*"
+                else:
+                    stochStr = "*stoch*"
+            overBoughtSoldStr = rsiStr + stochStr + " *overbought*"
+        elif rsiVal <= 30 or stochasticVal <= 20:
+            if rsiVal <= 30:
+                    rsiStr = "*rsi*"
+            if stochasticVal <= 20:
+                if len(rsiStr):
+                    stochStr = "*+stoch*"
+                else:
+                    stochStr = "*stoch*"
+            overBoughtSoldStr = rsiStr + stochStr + " *oversold*"
+        date = date.strftime("%m-%d")
         price = "${:.2f}".format(value)
-        retMsg += f"{buySellstring} Date: {date} Price: {price}\n"
+        retMsg += f"{buySellstring} on {date} @ {price} {overBoughtSoldStr}\n"
     try:
         F=open(chartMsgPath,"w")
         F.write(retMsg)
@@ -1050,6 +1076,10 @@ async def chart(ctx, sym: str):
                 return
 
             try:
+                regularMarketPrice = chartData["chart"]["result"][0]["meta"]["regularMarketPrice"]  
+                regularMarketTime = chartData["chart"]["result"][0]["meta"]["regularMarketTime"]
+                regularMarketTime = datetime.datetime.fromtimestamp(regularMarketTime)
+                regularMarketTime = regularMarketTime.strftime("%y-%m-%d %H:%M:%S")
                 inputdata["DateTime"] = parseTimestamp(chartData)
                 inputdata["Open"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["open"]
                 inputdata["Close"] = chartData["chart"]["result"][0]["indicators"]["quote"][0]["close"]
@@ -1077,8 +1107,8 @@ async def chart(ctx, sym: str):
                 rsi = calcRSI(closeData)
                 rsiOverboughtLine = [70] * len(rsi)
                 rsiUnderboughtLine = [30] * len(rsi)
-                chartBuySellMessage = generateChartBuySellMessage(closeData,macdSigBuy,macdSigSell,stochSigBuy,stochSigSell,movavgSigBuy,movavgSigSell,chartMsgPath)
-                macdPlot = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
+                chartBuySellMessage = generateChartBuySellMessage(ma,macdSigBuy,macdSigSell,stochSigBuy,stochSigSell,movavgSigBuy,movavgSigSell,rsi,stochasticKLine,chartMsgPath)
+                addPlots = [mpf.make_addplot(histogram,type='bar',width=0.7,panel=1,color='dimgray',alpha=1,secondary_y=False,ylabel='MACD'),
                             mpf.make_addplot(macd,panel=1,color='fuchsia',secondary_y=True,width=0.5),
                             mpf.make_addplot(signal,panel=1,color='b',secondary_y=True,width=0.5),
                             mpf.make_addplot(macdSigBuy,panel=1,color='g',type='scatter',markersize=50,marker='^'),
@@ -1101,8 +1131,8 @@ async def chart(ctx, sym: str):
                 mpf.plot(
                     df,
                     type="candle",
-                    addplot=macdPlot,
-                    title=f"\n{symbol.upper()}",
+                    addplot=addPlots,
+                    title=f"{symbol.upper()} (${regularMarketPrice} @ {regularMarketTime})",
                     volume=True,
                     volume_panel=4,
                     panel_ratios=(4,2,2,2,1),
