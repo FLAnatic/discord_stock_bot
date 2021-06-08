@@ -110,6 +110,9 @@ def Do_Equity_Reply(jsonData):
         symbol = jsonData["quoteType"]["symbol"]
         marketState = jsonData["price"]["marketState"]
         price = jsonData["price"]["regularMarketPrice"]["fmt"]
+        currency = jsonData["price"]["currency"]
+        currencySymbol = jsonData["price"]["currencySymbol"]
+        exchange = jsonData["price"]["exchangeName"]
         print("Equity Reply: ",longName, price)
         try:
             preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
@@ -285,11 +288,13 @@ def Do_Equity_Reply(jsonData):
         elif regularMarketDayChangePctRaw < -0.05:
             emojiIndicator = ":skull:"
 
-        description = f"**${price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
+        description = f"**{currencySymbol}{price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
         if marketState == "POST":
-            description += f"\r\n\r\n*Post-market: ${postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
+            description += f"\n*Post-market: {currencySymbol}{postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
         elif marketState == "PRE":
-            description += f"\r\n\r\n*Pre-market: ${preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
+            description += f"\n*Pre-market: {currencySymbol}{preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
+        description += f"\nExhange: {exchange}\nCurrency: {currency}"
+
         message = discord.Embed(title=str(longName).upper() + f" ({symbol})", url=f"https://finance.yahoo.com/quote/{symbol}",
                                 description=description,
                                 color=0xFF5733)
@@ -342,6 +347,10 @@ def Do_ETF_Reply(jsonData: dict):
         symbol = jsonData["quoteType"]["symbol"]
         marketState = jsonData["price"]["marketState"]
         price = jsonData["price"]["regularMarketPrice"]["fmt"]
+        currency = jsonData["price"]["currency"]
+        currencySymbol = jsonData["price"]["currencySymbol"]
+        exchange = jsonData["price"]["exchangeName"]
+        print("ETF Reply: ",longName, price)
         try:
             preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
             preMarketChangeRaw = jsonData["price"]["preMarketChange"]["raw"]
@@ -535,16 +544,21 @@ def Do_ETF_Reply(jsonData: dict):
         try:
             if regularMarketDayChangePctRaw > 0.05:
                 emojiIndicator = ":rocket:"
-            elif regularMarketDayChangePctRaw < -0.05:
+            if regularMarketDayChangePctRaw > 0.25:
+                emojiIndicator += ":full_moon:"
+            if regularMarketDayChangePctRaw < -0.05:
                 emojiIndicator = ":skull:"
+            if regularMarketDayChangePctRaw < -0.25:
+                emojiIndicator += ":skull:"
         except:
             emojiIndicator = ""
 
-        description = f"**${price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
+        description = f"**{currencySymbol}{price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
         if marketState == "POST":
-            description += f"\r\n\r\n*Post-market: ${postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
+            description += f"\n*Post-market: {currencySymbol}{postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
         elif marketState == "PRE":
-            description += f"\r\n\r\n*Pre-market: ${preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
+            description += f"\n*Pre-market: {currencySymbol}{preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
+        description += f"\nExhange: {exchange}\nCurrency: {currency}"
         message = discord.Embed(title=str(longName).upper() + f" ({symbol})", url=f"https://finance.yahoo.com/quote/{symbol}",
                                 description=description,
                                 color=0xFF5733)
