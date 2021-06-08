@@ -86,7 +86,7 @@ def fetchSymbolData(symbol):
         res = conn.getresponse()
     except:
         message = f"An error occured trying to retrive information for ${symbol}. Could not get a response from the remote server."
-        return NULL
+        return None
   
     if(res.code == 200):
         return res.read()
@@ -95,7 +95,7 @@ def fetchSymbolData(symbol):
 
 def find_symbols(text: str) -> List[str]:
     """ find all potential stock symbols starting with $ as a list."""
-    SYMBOL_REGEX = "[$]([a-zA-Z-]{1,8})"
+    SYMBOL_REGEX = "[$]([a-zA-Z0-9.-]{1,9})"
     return list(set(re.findall(SYMBOL_REGEX, text)))
 
 def Do_Equity_Reply(jsonData):
