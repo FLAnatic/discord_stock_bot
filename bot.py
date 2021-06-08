@@ -988,7 +988,7 @@ def generateChartBuySellMessage(priceData,macdSigBuy,macdSigSell,stochSigBuy,sto
                 rsiStr = "*rsi*"
             if stochasticVal >= 80:
                 if len(rsiStr):
-                    stochStr = "*+stoch*"
+                    stochStr = " *+ stoch*"
                 else:
                     stochStr = "*stoch*"
             overBoughtSoldStr = rsiStr + stochStr + " *overbought*"
@@ -997,7 +997,7 @@ def generateChartBuySellMessage(priceData,macdSigBuy,macdSigSell,stochSigBuy,sto
                     rsiStr = "*rsi*"
             if stochasticVal <= 20:
                 if len(rsiStr):
-                    stochStr = "*+stoch*"
+                    stochStr = " *+ stoch*"
                 else:
                     stochStr = "*stoch*"
             overBoughtSoldStr = rsiStr + stochStr + " *oversold*"
