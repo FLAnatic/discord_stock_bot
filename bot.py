@@ -283,10 +283,17 @@ def Do_Equity_Reply(jsonData):
                             f"http://www.openinsider.com/{insiderSymbol}")
 
         emojiIndicator = ""
-        if regularMarketDayChangePctRaw > 0.05:
-            emojiIndicator = ":rocket:"
-        elif regularMarketDayChangePctRaw < -0.05:
-            emojiIndicator = ":skull:"
+        try:
+            if regularMarketDayChangePctRaw > 0.05:
+                emojiIndicator = ":rocket:"
+            if regularMarketDayChangePctRaw > 0.25:
+                emojiIndicator += ":full_moon:"
+            if regularMarketDayChangePctRaw < -0.05:
+                emojiIndicator = ":skull:"
+            if regularMarketDayChangePctRaw < -0.25:
+                emojiIndicator += ":skull:"
+        except:
+            emojiIndicator = ""
 
         description = f"**{currencySymbol}{price}** ({regularMarketDayChange},{regularMarketDayChangePct}) {emojiIndicator}"
         if marketState == "POST":
