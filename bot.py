@@ -95,7 +95,7 @@ def fetchSymbolData(symbol):
 
 def find_symbols(text: str) -> List[str]:
     """ find all potential stock symbols starting with $ as a list."""
-    SYMBOL_REGEX = "[$]([a-zA-Z0-9.-]{1,9})"
+    SYMBOL_REGEX = "[$]([a-zA-Z0-9.=-]{1,9})"
     return list(set(re.findall(SYMBOL_REGEX, text)))
 
 def Do_Equity_Reply(jsonData):
@@ -635,6 +635,8 @@ def price_reply(symbols: list) -> Dict[str, str]:
                 elif quoteType == "MUTUALFUND":
                     message = Do_Fund_Reply(jsonData)
                 elif quoteType == "CRYPTOCURRENCY":
+                    message = Do_Equity_Reply(jsonData)
+                elif quoteType == "CURRENCY":
                     message = Do_Equity_Reply(jsonData)
                 else:
                     message = Do_Equity_Reply(jsonData)
