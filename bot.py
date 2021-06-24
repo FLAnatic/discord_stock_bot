@@ -748,7 +748,7 @@ async def on_message(message):
                     await ctx.send(reply[1])
                 else:
                     embed = reply[1]
-                    embed.set_footer(text="Stock info requested by: {}".format(ctx.author.display_name))
+                    embed.set_footer(text="Info requested by: {}".format(ctx.author.display_name))
                     await ctx.send(embed = embed)
                 #await message.channel.send(reply[1])
             return
