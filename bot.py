@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # bot.py
 import os
 import discord
