@@ -307,36 +307,40 @@ def Do_Equity_Reply(jsonData):
                                 color=0xFF5733)
         message.add_field(name="Quote Type",
                             value=quoteType, inline=True)
-        message.add_field(name="Industry", value=industry, inline=True)
-        message.add_field(name="Sector", value=sector, inline=True)
-        message.add_field(name="Market Cap",
-                            value=marketCap, inline=True)
-        message.add_field(name="Regular Market Day Range",
-                            value=regMktDayRng, inline=True)
-        message.add_field(name="Last 52 Week Range",
-                            value=fiftyTwoWeekRange, inline=True)
-        message.add_field(name="PE Ratio (TTM)",
-                            value=trailingPE, inline=True)
-        message.add_field(name="PEG Ratio",
-                            value=pegRatio, inline=True)
-        message.add_field(name="Price to Book",
-                            value=priceToBook, inline=True)
-        message.add_field(name="Price to Sales",
-                            value=priceToSales, inline=True)
-        message.add_field(name="EV/EBITDA",
-                            value=enterpriseToEbitda, inline=True)
-        message.add_field(name="beta", value=beta, inline=True)
+        if industry != "N/A":
+            message.add_field(name="Industry", value=industry, inline=True)
+        if sector != "N/A":
+            message.add_field(name="Sector", value=sector, inline=True)
+        if marketCap != "N/A":
+            message.add_field(name="Market Cap", value=marketCap, inline=True)
+        if regMktDayRng != "N/A":
+            message.add_field(name="Regular Market Day Range", value=regMktDayRng, inline=True)
+        if fiftyTwoWeekRange != "N/A":
+            message.add_field(name="Last 52 Week Range", value=fiftyTwoWeekRange, inline=True)
+        if trailingPE != "N/A":
+            message.add_field(name="PE Ratio (TTM)", value=trailingPE, inline=True)
+        if pegRatio != "N/A":
+            message.add_field(name="PEG Ratio", value=pegRatio, inline=True)
+        if priceToBook != "N/A":
+            message.add_field(name="Price to Book", value=priceToBook, inline=True)
+        if priceToSales != "N/A":
+            message.add_field(name="Price to Sales", value=priceToSales, inline=True)
+        if enterpriseToEbitda != "N/A":
+            message.add_field(name="EV/EBITDA", value=enterpriseToEbitda, inline=True)
+        if beta != "N/A":
+            message.add_field(name="beta", value=beta, inline=True)
 
-        rateAndYield = str(dividendRate) + \
-                            " (" + str(dividendYield) + ")"
-        message.add_field(name="Dividend Rate and Yield",
-                            value=rateAndYield, inline=True)
+        if quoteType != "CURRENCY":
+            rateAndYield = str(dividendRate) + \
+                                " (" + str(dividendYield) + ")"
+            message.add_field(name="Dividend Rate and Yield",
+                                value=rateAndYield, inline=True)
 
-        message.add_field(name="Share Statistics",
-                            value=insiderHolding, inline=False)
-        morningstarSymbol = symbol.replace('-','.')
-        message.add_field(name="MorningStar Key Ratios",
-                            value=f"http://financials.morningstar.com/ratios/r.html?t={morningstarSymbol}", inline=False)
+            message.add_field(name="Share Statistics",
+                                value=insiderHolding, inline=False)
+            morningstarSymbol = symbol.replace('-','.')
+            message.add_field(name="MorningStar Key Ratios",
+                                value=f"http://financials.morningstar.com/ratios/r.html?t={morningstarSymbol}", inline=False)
     except:
         message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
     
