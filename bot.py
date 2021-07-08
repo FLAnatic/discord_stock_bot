@@ -331,7 +331,7 @@ def Do_Equity_Reply(jsonData):
         if beta != "N/A":
             message.add_field(name="beta", value=beta, inline=True)
 
-        if quoteType != "CURRENCY":
+        if quoteType != "CURRENCY" and quoteType != "CRYPTOCURRENCY":
             rateAndYield = str(dividendRate) + \
                                 " (" + str(dividendYield) + ")"
             message.add_field(name="Dividend Rate and Yield",
