@@ -621,6 +621,9 @@ def price_reply(symbols: list) -> Dict[str, str]:
     """ for all symbols in provided list query yahoo finance, parse the data and send an embed reponse or an error message in case of failure """
     dataMessages = {}
     for symbol in symbols:
+        # throw away anything that just has numerics like $1000
+        if symbol.isnumeric():
+            continue
         data = fetchSymbolData(symbol)
         if not len(data):
             message = f"Could not find information for ${symbol}."
