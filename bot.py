@@ -103,17 +103,20 @@ def Do_Equity_Reply(jsonData):
     """ formulate a reply specifically for an equity quote type """
     try:
         quoteType = jsonData["quoteType"]["quoteType"]
-        shortName = jsonData["quoteType"]["shortName"]
-        try:
-            longName = jsonData["quoteType"]["longName"]
-        except:
-            longName = shortName
         symbol = jsonData["quoteType"]["symbol"]
         marketState = jsonData["price"]["marketState"]
         price = jsonData["price"]["regularMarketPrice"]["fmt"]
         currency = jsonData["price"]["currency"]
         currencySymbol = jsonData["price"]["currencySymbol"]
         exchange = jsonData["price"]["exchangeName"]
+        try:
+            shortName = jsonData["quoteType"]["shortName"]
+        except:
+            shortName = symbol
+        try:
+            longName = jsonData["quoteType"]["longName"]
+        except:
+            longName = shortName
         print("Equity Reply: ",longName, price)
         try:
             preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
@@ -351,17 +354,20 @@ def Do_ETF_Reply(jsonData: dict):
     """ formulate a reply specifically for an ETF quote type """
     try:
         quoteType = jsonData["quoteType"]["quoteType"]
-        shortName = jsonData["quoteType"]["shortName"]
-        try:
-            longName = jsonData["quoteType"]["longName"]
-        except:
-            longName = shortName
         symbol = jsonData["quoteType"]["symbol"]
         marketState = jsonData["price"]["marketState"]
         price = jsonData["price"]["regularMarketPrice"]["fmt"]
         currency = jsonData["price"]["currency"]
         currencySymbol = jsonData["price"]["currencySymbol"]
         exchange = jsonData["price"]["exchangeName"]
+        try:
+            shortName = jsonData["quoteType"]["shortName"]
+        except:
+            shortName = symbol
+        try:
+            longName = jsonData["quoteType"]["longName"]
+        except:
+            longName = shortName
         print("ETF Reply: ",longName, price)
         try:
             preMarketPrice = jsonData["price"]["preMarketPrice"]["fmt"]
