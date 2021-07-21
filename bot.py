@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # bot.py
+from asyncio.windows_events import NULL
 import os
 import discord
 from discord.ext import commands, tasks
@@ -53,10 +54,25 @@ except OSError:
 with rapidapikeyFile:
     RAPIDAPIKEY = rapidapikeyFile.readline()
 
+# Get whale api key to access yahoo finance api
+WHALEALERTAPIKEY = None
+try:
+    whalealertapikeyFile = open('whalealertapikey.txt', 'r')
+    with whalealertapikeyFile:
+        WHALEALERTAPIKEY = whalealertapikeyFile.readline()
+except OSError:
+    print("Could not open/read Whale alert API key file. Whale Alert functionality disable.")
+
+
 # headers used for all rapid api yahoo finance connection requests
 headers = {
     'x-rapidapi-key': RAPIDAPIKEY,
     'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
+}
+
+waHeaders = {
+    'x-wa-api-key': WHALEALERTAPIKEY,
+    #'x-wa-api-host': "api.whale-alert.io"
 }
 
 # create folders for stored images
@@ -784,28 +800,43 @@ async def movers(ctx):
 
 @tasks.loop(minutes=1)
 async def scheduleTask():
-    """ execute getmovers and clean up charts on schedule """
+    """ execute periodic work like whale alerts, getmovers and clean up charts on schedule """
+    messages = []
+    startTime = scheduleTask.prevEndTime
+    endTime = int(time.time())
+    scheduleTask.prevEndTime = endTime
+    if WHALEALERTAPIKEY:
+        transactions = getWhaleAlertTransactions(startTime,endTime,10000000)
+        if transactions:
+            messages = DoWhaleAlertReply(transactions)
     schedule.run_pending()
     global doGetMoversUpdate
     if doGetMoversUpdate is True:
         doGetMoversUpdate = False
         movers = get_movers()
+        messages.append(movers)
+        CleanUpSavedCharts()
+    if not messages:
+        return
+    for message in messages:
         channels = bot.get_all_channels()
         for channel in channels:
-            if (channel.name == "testing") and (testing == True) :
+            if (channel.name == "testing") and (testing == True):
                 try:
-                    await channel.send(embed = movers)
+                    await channel.send(embed = message)
                 except:
                     continue
+            elif (channel.name == "testing") and (testing == False):
+                continue
             elif testing is True:
                 continue
             else:
                 try:
-                    await channel.send(embed = movers)
+                    await channel.send(embed = message)
                 except:
                     continue
 
-        CleanUpSavedCharts()
+scheduleTask.prevEndTime = int(time.time())
 
 def fetchChartData(symbol,intervalIn,rangeIn):
     """ makes yahoo finance chart query for provided symbol interval and range """
@@ -1216,4 +1247,77 @@ async def rand(ctx):
         message = f"I wasn't able to get a symbol name from my list."
         return
 
+
+def getWhaleAlertTransactions(startTime, endTime, minValue):
+    """Get whale alert transactions between startTime and endTIme with specified min value."""
+    conn = http.client.HTTPSConnection("api.whale-alert.io")
+    url = f"/v1/transactions?start={startTime}&end={endTime}&min_value={minValue}"
+    try:
+        conn.request("GET", url, headers=waHeaders)
+        res = conn.getresponse()
+    except:
+        message = f"An error occured trying to retrive whale alert data. Could not connect to the remote server."
+        return message
+    if(res.code == 200):
+        ret = res.read()
+        ret = json.loads(ret.decode())
+        return ret
+    else:
+        return None
+
+def DoWhaleAlertReply(jsonData):
+    messages = []
+    if len(jsonData):
+        try:
+            result = jsonData["result"]
+            cursor = jsonData["cursor"]
+            count = jsonData["count"]
+        except:
+            return None
+    if result == 'success' and count > 0:
+        try:
+            transactions = jsonData["transactions"]
+            for transaction in transactions:
+                blockchain = transaction["blockchain"]
+                symbol = transaction["symbol"]
+                id = transaction["id"]
+                transactionType = transaction["transaction_type"]
+                hash = transaction["hash"]
+                transactionFrom = transaction["from"]
+                fromAddress = transactionFrom["address"]
+                fromOwnerType = transactionFrom["owner_type"]
+                try:
+                    fromOwner = transactionFrom["owner"]
+                except:
+                    fromOwner = "unknown wallet"
+
+                transactionTo = transaction["to"]
+                toAddress = transactionTo["address"]
+                toOwnerType = transactionTo["owner_type"]
+                try:
+                    toOwner = transactionTo["owner"]
+                except:
+                    toOwner = "unknown wallet"
+                timeStamp = transaction["timestamp"]
+                amount = transaction["amount"]
+                amount_usd = transaction["amount_usd"]
+                transaction_count = transaction["transaction_count"]
+                readableTimeStamp = datetime.datetime.fromtimestamp(timeStamp)
+                readableTimeStamp = readableTimeStamp.strftime("%y-%m-%d %H:%M:%S")
+                blockchain = blockchain.upper()
+                message=discord.Embed(title=f"{blockchain}",url=f"https://whale-alert.io/transaction/{blockchain}/{hash}",color=0xFF5733)
+                message.add_field(name="Transaction Type", value=transactionType, inline=False)
+                symbol = symbol.upper()
+                message.add_field(name="Amount", value=f"{amount} **{symbol}** (${amount_usd})", inline=False)
+                message.add_field(name="Timestamp", value=f"{readableTimeStamp} ({timeStamp})", inline=False)
+                message.add_field(name="Hash", value=hash, inline=False)
+                message.add_field(name="From", value=f"{fromOwner} ({fromOwnerType})\r\n{fromAddress}", inline=False)
+                message.add_field(name="To", value=f"{toOwner} ({toOwnerType})\r\n{toAddress}", inline=False)
+
+                messages.append(message)
+                return messages
+        except:
+            return None
+
+        
 bot.run(TOKEN)
