@@ -1310,7 +1310,7 @@ def DoWhaleAlertReply(jsonData):
                 amount = "{:,}".format(int(amount))
                 amount_usd = "{:,}".format(int(amount_usd))
                 blockchain = blockchain.upper()
-                message=discord.Embed(title=f"{blockchain}",url=f"https://whale-alert.io/transaction/{blockchain}/{hash}",color=0xFF5733)
+                message=discord.Embed(title=f"{blockchain} (${amount_usd})",url=f"https://whale-alert.io/transaction/{blockchain}/{hash}",color=0xFF5733)
                 message.add_field(name="Transaction Type", value=transactionType, inline=False)
                 message.add_field(name="Amount", value=f"{amount} **{symbol}** (${amount_usd})", inline=False)
                 message.add_field(name="Timestamp", value=f"{readableTimeStamp} ({timeStamp})", inline=False)
