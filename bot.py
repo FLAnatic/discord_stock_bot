@@ -806,7 +806,7 @@ async def scheduleTask():
     endTime = int(time.time())
     scheduleTask.prevEndTime = endTime
     if WHALEALERTAPIKEY:
-        transactions = getWhaleAlertTransactions(startTime,endTime,10000000)
+        transactions = getWhaleAlertTransactions(startTime,endTime,20000000)
         if transactions:
             messages = DoWhaleAlertReply(transactions)
     schedule.run_pending()
