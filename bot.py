@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # bot.py
-from asyncio.windows_events import NULL
 import os
 import discord
 from discord.ext import commands, tasks
