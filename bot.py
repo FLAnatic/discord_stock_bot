@@ -1273,7 +1273,7 @@ def DoWhaleAlertReply(jsonData):
             cursor = jsonData["cursor"]
             count = jsonData["count"]
         except:
-            return None
+            return messages
     if count:
         print(f"Detected {count} whale alert transactions.")
     if result == 'success' and count > 0:
@@ -1321,7 +1321,7 @@ def DoWhaleAlertReply(jsonData):
                 messages.append(message)
                 return messages
         except:
-            return None
+            return messages
 
         
 bot.run(TOKEN)
