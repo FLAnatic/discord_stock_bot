@@ -54,6 +54,7 @@ with rapidapikeyFile:
     RAPIDAPIKEY = rapidapikeyFile.readline()
 
 # Get whale api key to access yahoo finance api
+WHALEALERTLIMIT = 100000000
 WHALEALERTAPIKEY = None
 try:
     whalealertapikeyFile = open('whalealertapikey.txt', 'r')
@@ -805,7 +806,7 @@ async def scheduleTask():
     endTime = int(time.time())
     scheduleTask.prevEndTime = endTime
     if WHALEALERTAPIKEY:
-        transactions = getWhaleAlertTransactions(startTime,endTime,20000000)
+        transactions = getWhaleAlertTransactions(startTime,endTime,WHALEALERTLIMIT)
         if transactions:
             messages = DoWhaleAlertReply(transactions)
     schedule.run_pending()
@@ -1245,6 +1246,35 @@ async def rand(ctx):
     except:
         message = f"I wasn't able to get a symbol name from my list."
         return
+
+
+
+@bot.command()
+async def whalealert(ctx,cmd:str,val=None):
+    """Set whale alert minimum trigger value."""
+    global WHALEALERTLIMIT
+    message = "Error executing whale alert command." 
+    cmd = cmd.lower()
+    if cmd == "get":
+        message = "Whale alert is off."
+        if WHALEALERTLIMIT:
+            message = f"Whale alert is set to {WHALEALERTLIMIT}"
+    elif cmd == "set":
+        try:
+            val = int(val) 
+            if val >= 500000:
+                WHALEALERTLIMIT = val
+                message = f"Whale alert limit is set to {WHALEALERTLIMIT}"
+            elif val == 0:
+                WHALEALERTLIMIT = 0
+                message = "Whale alert is off."
+            else:
+                message = f"Whale alert limit must be a valid number > 500,000"
+        except:
+            message = f"Whale alert limit must be a valid number > 500,000"
+
+    
+    await ctx.send(message)
 
 
 def getWhaleAlertTransactions(startTime, endTime, minValue):
