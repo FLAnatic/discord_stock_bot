@@ -27,6 +27,8 @@ help_text = """
     !chart
     !random
     !help
+    !whalealert get
+    !whalealert set <value>
 **Inline Features**
     The bot looks at every message in the chat room it is in for stock symbols. Symbols start with a
     `$` followed by the stock symbol. For example: $gme will return data for Gamestop Corp.
@@ -1253,7 +1255,7 @@ async def rand(ctx):
 async def whalealert(ctx,cmd:str,val=None):
     """Set whale alert minimum trigger value."""
     global WHALEALERTLIMIT
-    message = "Error executing whale alert command." 
+    message = "Error executing whale alert command. Value should be 0 to disable or 500000 and above. Examples:\r\n!whalealert get\r\n!whalealert set 0\r\n!whalealert set 500000" 
     cmd = cmd.lower()
     if cmd == "get":
         message = "Whale alert is off."
