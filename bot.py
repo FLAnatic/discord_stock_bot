@@ -813,9 +813,11 @@ async def scheduleTask():
             messages = DoWhaleAlertReply(transactions)
     schedule.run_pending()
     global doGetMoversUpdate
-    if doGetMoversUpdate is True:
+    if True:
         doGetMoversUpdate = False
         movers = get_movers()
+        if messages == None:
+            messages = []
         messages.append(movers)
         CleanUpSavedCharts()
     if not messages:
