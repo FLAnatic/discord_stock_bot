@@ -813,7 +813,7 @@ async def scheduleTask():
             messages = DoWhaleAlertReply(transactions)
     schedule.run_pending()
     global doGetMoversUpdate
-    if True:
+    if doGetMoversUpdate is True:
         doGetMoversUpdate = False
         movers = get_movers()
         if messages == None:
