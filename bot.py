@@ -807,7 +807,7 @@ async def scheduleTask():
     startTime = scheduleTask.prevEndTime
     endTime = int(time.time())
     scheduleTask.prevEndTime = endTime
-    if WHALEALERTAPIKEY:
+    if WHALEALERTAPIKEY and WHALEALERTLIMIT >= 500000:
         transactions = getWhaleAlertTransactions(startTime,endTime,WHALEALERTLIMIT)
         if transactions:
             messages = DoWhaleAlertReply(transactions)
@@ -1275,7 +1275,6 @@ async def whalealert(ctx,cmd:str,val=None):
         except:
             message = f"Whale alert limit must be a valid number > 500,000"
 
-    
     await ctx.send(message)
 
 
