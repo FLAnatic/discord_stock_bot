@@ -127,6 +127,7 @@ def Do_Equity_Reply(jsonData):
         currency = jsonData["price"]["currency"]
         currencySymbol = jsonData["price"]["currencySymbol"]
         exchange = jsonData["price"]["exchangeName"]
+        quoteSourceName = jsonData["price"]["quoteSourceName"]
         try:
             shortName = jsonData["quoteType"]["shortName"]
         except:
@@ -197,6 +198,12 @@ def Do_Equity_Reply(jsonData):
                 fiftyTwoWeekLow) + " - " + str(fiftyTwoWeekHigh)
         except:
             fiftyTwoWeekRange = "N/A"
+        try:
+            twoHundredDayAvg = jsonData["summaryDetail"]["twoHundredDayAverage"]["fmt"]
+            fiftyDayAvg = jsonData["summaryDetail"]["fiftyDayAverage"]["fmt"]
+        except:
+            twoHundredDayAvg = "N/A"
+            fiftyDayAvg = "N/A"
         try:
             enterpriseToEbitda = jsonData["defaultKeyStatistics"]["enterpriseToEbitda"]["fmt"]
         except:
@@ -322,7 +329,7 @@ def Do_Equity_Reply(jsonData):
             description += f"\n*Post-market: {currencySymbol}{postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
         elif marketState == "PRE":
             description += f"\n*Pre-market: {currencySymbol}{preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
-        description += f"\nExhange: {exchange}\nCurrency: {currency}"
+        description += f"\nExchange: {exchange}\nCurrency: {currency}\nQuote Source: {quoteSourceName}"
 
         message = discord.Embed(title=str(longName).upper() + f" ({symbol})", url=f"https://finance.yahoo.com/quote/{symbol}",
                                 description=description,
@@ -351,6 +358,10 @@ def Do_Equity_Reply(jsonData):
             message.add_field(name="EV/EBITDA", value=enterpriseToEbitda, inline=True)
         if beta != "N/A":
             message.add_field(name="beta", value=beta, inline=True)
+        if twoHundredDayAvg != "N/A":
+            message.add_field(name="200 Day Avg.", value=f"{currencySymbol}{twoHundredDayAvg}", inline=True)
+        if fiftyDayAvg != "N/A":
+            message.add_field(name="50 Day Avg.", value=f"{currencySymbol}{fiftyDayAvg}", inline=True)
 
         if quoteType != "CURRENCY" and quoteType != "CRYPTOCURRENCY":
             rateAndYield = str(dividendRate) + \
@@ -378,6 +389,8 @@ def Do_ETF_Reply(jsonData: dict):
         currency = jsonData["price"]["currency"]
         currencySymbol = jsonData["price"]["currencySymbol"]
         exchange = jsonData["price"]["exchangeName"]
+        quoteSourceName = jsonData["price"]["quoteSourceName"]
+
         try:
             shortName = jsonData["quoteType"]["shortName"]
         except:
@@ -442,6 +455,12 @@ def Do_ETF_Reply(jsonData: dict):
                 fiftyTwoWeekLow) + " - " + str(fiftyTwoWeekHigh)
         except:
             fiftyTwoWeekRange = "N/A"
+        try:
+            twoHundredDayAvg = jsonData["summaryDetail"]["twoHundredDayAverage"]["fmt"]
+            fiftyDayAvg = jsonData["summaryDetail"]["fiftyDayAverage"]["fmt"]
+        except:
+            twoHundredDayAvg = "N/A"
+            fiftyDayAvg = "N/A"
 
         try:
             marketCap = jsonData["price"]["marketCap"]["fmt"]
@@ -594,7 +613,7 @@ def Do_ETF_Reply(jsonData: dict):
             description += f"\n*Post-market: {currencySymbol}{postMarketPrice} ({postMarketChange},{postMarketChangePct})*"
         elif marketState == "PRE":
             description += f"\n*Pre-market: {currencySymbol}{preMarketPrice} ({preMarketChange},{preMarketChangePct})*"
-        description += f"\nExhange: {exchange}\nCurrency: {currency}"
+        description += f"\nExchange: {exchange}\nCurrency: {currency}\nQuote Source: {quoteSourceName}"
         message = discord.Embed(title=str(longName).upper() + f" ({symbol})", url=f"https://finance.yahoo.com/quote/{symbol}",
                                 description=description,
                                 color=0xFF5733)
@@ -610,6 +629,10 @@ def Do_ETF_Reply(jsonData: dict):
                             value=regMktDayRng, inline=True)
         message.add_field(name="Last 52 Week Range",
                             value=fiftyTwoWeekRange, inline=True)
+        if twoHundredDayAvg != "N/A":
+            message.add_field(name="200 Day Avg.", value=f"{currencySymbol}{twoHundredDayAvg}", inline=True)
+        if fiftyDayAvg != "N/A":
+            message.add_field(name="50 Day Avg.", value=f"{currencySymbol}{fiftyDayAvg}", inline=True)
         message.add_field(name="beta", value=beta, inline=True)
 
         message.add_field(name="Fund Inception Date", value=fundInceptionDate, inline=True)
