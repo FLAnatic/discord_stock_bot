@@ -1340,21 +1340,38 @@ def DoWhaleAlertReply(jsonData):
                 id = transaction["id"]
                 transactionType = transaction["transaction_type"]
                 hash = transaction["hash"]
-                transactionFrom = transaction["from"]
-                fromAddress = transactionFrom["address"]
-                fromOwnerType = transactionFrom["owner_type"]
+                try:
+                    transactionFrom = transaction["from"]
+                except:
+                    transactionFrom = "Unknown"
+                try:
+                    fromOwnerType = transactionFrom["owner_type"]
+                except:
+                    fromOwnerType = "Unknown owner type"
                 try:
                     fromOwner = transactionFrom["owner"]
                 except:
-                    fromOwner = "unknown wallet"
-
-                transactionTo = transaction["to"]
-                toAddress = transactionTo["address"]
-                toOwnerType = transactionTo["owner_type"]
+                    fromOwner = "Unknown owner"
+                try:
+                    fromAddress = transactionFrom["address"]
+                except:
+                    fromAddress = "Unknown Address"
+                try:
+                    transactionTo = transaction["to"]
+                except:
+                    transactionTo = "Unknown"
+                try:
+                    toAddress = transactionTo["address"]
+                except:
+                    toAddress = "Unknown Address"
+                try:
+                    toOwnerType = transactionTo["owner_type"]
+                except:
+                    toOwnerType = "Unknown owner type"
                 try:
                     toOwner = transactionTo["owner"]
                 except:
-                    toOwner = "unknown wallet"
+                    toOwner = "Unknown owner"
                 timeStamp = transaction["timestamp"]
                 amount = transaction["amount"]
                 amount_usd = transaction["amount_usd"]
@@ -1374,9 +1391,11 @@ def DoWhaleAlertReply(jsonData):
                 message.add_field(name="To", value=f"{toOwner} ({toOwnerType})\r\n{toAddress}", inline=False)
 
                 messages.append(message)
-                return messages
-        except:
             return messages
-
+        except:
+            print("Exception occurred processing whale alert transaction.")
+            return messages
+        
+        return messages
         
 bot.run(TOKEN)
