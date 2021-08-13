@@ -302,6 +302,44 @@ def Do_Equity_Reply(jsonData):
         except:
             shortPercentOfFloat = "N/A"
 
+        try:
+            returnOnAssetsFmt = jsonData["financialData"]["returnOnAssets"]["fmt"]
+            returnOnAssetsRaw = jsonData["financialData"]["returnOnAssets"]["raw"]
+            if returnOnAssetsRaw >= 0.15:
+                returnOnAssetsColor = ':green_circle:'
+            elif returnOnAssetsRaw < 0:
+                returnOnAssetsColor = ':red_circle:'
+            else:
+                returnOnAssetsColor = ':yellow_circle:'
+            returnOnAssets = returnOnAssetsFmt + returnOnAssetsColor
+        except:
+            returnOnAssets = "N/A"
+        try:
+            returnOnEquityFmt = jsonData["financialData"]["returnOnEquity"]["fmt"]
+            returnOnEquityRaw = jsonData["financialData"]["returnOnEquity"]["raw"]
+            if returnOnEquityRaw >= 0.30:
+                returnOnEquityColor = ':green_circle:'
+            elif returnOnEquityRaw < 0:
+                returnOnEquityColor = ':red_circle:'
+            else:
+                returnOnEquityColor = ':yellow_circle:'
+            returnOnEquity = returnOnEquityFmt + returnOnEquityColor
+        except:
+            returnOnEquity = "N/A"
+        try:
+            revenueGrowthFmt = jsonData["financialData"]["revenueGrowth"]["fmt"]
+            revenueGrowthRaw = jsonData["financialData"]["revenueGrowth"]["raw"]   
+            revenueGrowth = revenueGrowthFmt
+        except:
+            revenueGrowth = "N/A"
+        
+        try:
+            freeCashFlowFmt = jsonData["financialData"]["freeCashflow"]["fmt"]
+            freeCashFlowRaw = jsonData["financialData"]["freeCashflow"]["raw"]
+            freeCashFlow = freeCashFlowFmt
+        except:
+            freeCashFlow = "N/A"
+
         insiderPurchases = (f"Purchases: {buyInfoShares} shares in {buyInfoCount} transactions.\r\n" +
                             f"Sales: {sellInfoShares} shares in {sellInfoCount} transactions.")
                         
@@ -356,6 +394,14 @@ def Do_Equity_Reply(jsonData):
             message.add_field(name="Price to Sales", value=priceToSales, inline=True)
         if enterpriseToEbitda != "N/A":
             message.add_field(name="EV/EBITDA", value=enterpriseToEbitda, inline=True)
+        if returnOnAssets != "N/A":
+            message.add_field(name="Return on Assets (ttm)", value=returnOnAssets, inline=True)
+        if returnOnEquity != "N/A":
+            message.add_field(name="Return on Equity (ttm)", value=returnOnEquity, inline=True)
+        if revenueGrowth != "N/A":
+            message.add_field(name="Quarterly Revenue Growth (yoy)", value=revenueGrowth, inline=True)
+        if freeCashFlow != "N/A":
+            message.add_field(name="Levered Free Cash Flow (ttm)", value=freeCashFlow, inline=True)
         if beta != "N/A":
             message.add_field(name="beta", value=beta, inline=True)
         if twoHundredDayAvg != "N/A":
