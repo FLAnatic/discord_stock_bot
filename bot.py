@@ -722,12 +722,10 @@ def price_reply(symbols: list) -> Dict[str, str]:
             message = f"Could not find information for ${symbol}."
             dataMessages[symbol] = message
         else:
-            jsonData = json.loads(data.decode())
-            
-            theType = type(jsonData)
-
             message = {}
             try:
+                jsonData = json.loads(data.decode())
+                theType = type(jsonData)
                 quoteType = jsonData["quoteType"]["quoteType"]
                 if quoteType == "EQUITY":
                     message = Do_Equity_Reply(jsonData)
