@@ -760,9 +760,10 @@ def get_movers():
         message = f"An error occured trying to retrive market movers data. Could not connect to the remote server."
         return message
 
-    data = res.read()
-    jsonData = json.loads(data.decode())
+
     try:
+        data = res.read()
+        jsonData = json.loads(data.decode())
         results = jsonData["finance"]["result"]
     except:
         message = f"An error occured trying to retrive market movers data."
