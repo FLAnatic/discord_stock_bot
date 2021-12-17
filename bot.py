@@ -16,6 +16,7 @@ import pandas as pd
 import mplfinance as mpf
 import random
 import numpy as np
+import configparser
 
 testing = False
 
@@ -35,33 +36,30 @@ help_text = """
     Market data is provided by [Yahoo! Finance](https://rapidapi.com/apidojo/api/yahoo-finance1)
     """
 
-# Get token for discord
-try:
-    tokenFile = open("token.txt", 'r')
-except OSError:
-    print("Could not open/read token file.")
-    exit()
-
-with tokenFile:
-    TOKEN = tokenFile.readline()
-
-# Get rapid api key to access yahoo finance api
-try:
-    rapidapikeyFile = open('rapidapikey.txt', 'r')
-except OSError:
-    print("Could not open/read Raid API key file.")
-    sys.exit()
-
-with rapidapikeyFile:
-    RAPIDAPIKEY = rapidapikeyFile.readline()
-
-# Get whale api key to access yahoo finance api
+# Get token for discord, rapid api and whale alerts
 WHALEALERTLIMIT = 100000000
 WHALEALERTAPIKEY = None
+WHALEALERTCHANNEL = None
+configParser = configparser.RawConfigParser()   
 try:
-    whalealertapikeyFile = open('whalealertapikey.txt', 'r')
-    with whalealertapikeyFile:
-        WHALEALERTAPIKEY = whalealertapikeyFile.readline()
+    configFilePath = r'stockbot.cfg'
+    configParser.read(configFilePath)
+    if configParser.has_option('discord', 'token'):
+        TOKEN = configParser.get('discord', 'token')
+    else:
+        print("Could not open/read token file.")
+        exit()
+    if configParser.has_option('rapid-api', 'key'):
+        RAPIDAPIKEY = configParser.get('rapid-api', 'key')
+    else:
+        print("Could not open/read Raid API key file.")
+        exit()
+    if configParser.has_option('whale-alert', 'key'):
+        WHALEALERTAPIKEY = configParser.get('whale-alert', 'key')
+    if configParser.has_option('whale-alert', 'channel'):
+        WHALEALERTCHANNEL = configParser.get('whale-alert', 'channel')
+    if configParser.has_option('whale-alert', 'limit'):
+        WHALEALERTLIMIT = int(configParser.get('whale-alert', 'limit'))
 except OSError:
     print("Could not open/read Whale alert API key file. Whale Alert functionality disable.")
 
@@ -385,7 +383,7 @@ def Do_Equity_Reply(jsonData):
         if fiftyTwoWeekRange != "N/A":
             message.add_field(name="Last 52 Week Range", value=fiftyTwoWeekRange, inline=True)
         if trailingPE != "N/A":
-            message.add_field(name="PE Ratio (TTM)", value=trailingPE, inline=True)
+            message.add_field(name="PE Ratio (ttm)", value=trailingPE, inline=True)
         if pegRatio != "N/A":
             message.add_field(name="PEG Ratio", value=pegRatio, inline=True)
         if priceToBook != "N/A":
@@ -401,7 +399,7 @@ def Do_Equity_Reply(jsonData):
         if revenueGrowth != "N/A":
             message.add_field(name="Quarterly Revenue Growth (yoy)", value=revenueGrowth, inline=True)
         if freeCashFlow != "N/A":
-            message.add_field(name="Levered Free Cash Flow (ttm)", value=freeCashFlow, inline=True)
+            message.add_field(name="Levered Free Cash Flow (ttm)", value=f"{currencySymbol}{freeCashFlow}", inline=True)
         if beta != "N/A":
             message.add_field(name="beta", value=beta, inline=True)
         if twoHundredDayAvg != "N/A":
@@ -693,8 +691,11 @@ def Do_ETF_Reply(jsonData: dict):
         message.add_field(name="Composition ", value=compositionString, inline=True)
 
         message.add_field(name="Sector Weightings", value=sectorWeightingsString, inline=True)
+        if topHoldingsString != "N/A":
+            message.add_field(name="Top Holdings" + " ({:.2%})".format(topHoldingTotalPct), value=topHoldingsString, inline=True)
+        else:
+            message.add_field(name="Top Holdings", value="Unavailable", inline=True)
 
-        message.add_field(name="Top Holdings" + " ({:.2%})".format(topHoldingTotalPct), value=topHoldingsString, inline=True)
 
         message.set_image(url = styleBox)
         
@@ -722,10 +723,12 @@ def price_reply(symbols: list) -> Dict[str, str]:
             message = f"Could not find information for ${symbol}."
             dataMessages[symbol] = message
         else:
+            jsonData = json.loads(data.decode())
+            
+            theType = type(jsonData)
+
             message = {}
             try:
-                jsonData = json.loads(data.decode())
-                theType = type(jsonData)
                 quoteType = jsonData["quoteType"]["quoteType"]
                 if quoteType == "EQUITY":
                     message = Do_Equity_Reply(jsonData)
@@ -758,10 +761,9 @@ def get_movers():
         message = f"An error occured trying to retrive market movers data. Could not connect to the remote server."
         return message
 
-
+    data = res.read()
+    jsonData = json.loads(data.decode())
     try:
-        data = res.read()
-        jsonData = json.loads(data.decode())
         results = jsonData["finance"]["result"]
     except:
         message = f"An error occured trying to retrive market movers data."
@@ -872,14 +874,8 @@ async def movers(ctx):
 async def scheduleTask():
     """ execute periodic work like whale alerts, getmovers and clean up charts on schedule """
     messages = []
-    startTime = scheduleTask.prevEndTime
-    endTime = int(time.time())
-    scheduleTask.prevEndTime = endTime
-    if WHALEALERTAPIKEY and WHALEALERTLIMIT >= 500000:
-        transactions = getWhaleAlertTransactions(startTime,endTime,WHALEALERTLIMIT)
-        if transactions:
-            messages = DoWhaleAlertReply(transactions)
     schedule.run_pending()
+    whaleAlertReply = False
     global doGetMoversUpdate
     if doGetMoversUpdate is True:
         doGetMoversUpdate = False
@@ -888,11 +884,32 @@ async def scheduleTask():
             messages = []
         messages.append(movers)
         CleanUpSavedCharts()
+    else:
+        whaleAlertReply = True
+        startTime = scheduleTask.prevEndTime
+        endTime = int(time.time())
+        scheduleTask.prevEndTime = endTime
+        if WHALEALERTAPIKEY and WHALEALERTLIMIT >= 500000:
+            transactions = getWhaleAlertTransactions(startTime,endTime,WHALEALERTLIMIT)
+            if transactions:
+                messages = DoWhaleAlertReply(transactions)
+    
     if not messages:
         return
     for message in messages:
         channels = bot.get_all_channels()
         for channel in channels:
+            if( (whaleAlertReply is True) and (channel.name == WHALEALERTCHANNEL)):
+                try:
+                    await channel.send(embed = message)
+                    continue
+                except:
+                    continue
+            elif whaleAlertReply is True:
+                continue
+            elif( (whaleAlertReply is False) and (channel.name == WHALEALERTCHANNEL)):
+                continue
+            
             if (channel.name == "testing") and (testing == True):
                 try:
                     await channel.send(embed = message)
@@ -1337,9 +1354,11 @@ async def whalealert(ctx,cmd:str,val=None):
             if val >= 500000:
                 WHALEALERTLIMIT = val
                 message = f"Whale alert limit is set to {WHALEALERTLIMIT}"
+                configParser.set('whale-alert', 'limit',str(WHALEALERTLIMIT))
             elif val == 0:
                 WHALEALERTLIMIT = 0
                 message = "Whale alert is off."
+                configParser.set('whale-alert', 'limit',str(WHALEALERTLIMIT))
             else:
                 message = f"Whale alert limit must be a valid number > 500,000"
         except:
@@ -1384,6 +1403,14 @@ def DoWhaleAlertReply(jsonData):
                 symbol = transaction["symbol"]
                 id = transaction["id"]
                 transactionType = transaction["transaction_type"]
+                if transactionType == "transfer":
+                    transactionPic = ":rotating_light:"
+                elif transactionType == "mint":
+                    transactionPic = ":dollar:"
+                elif transactionType == "burn":
+                    transactionPic = ":fire:"
+                else:
+                    transactionPic = ":rotating_light:"
                 hash = transaction["hash"]
                 try:
                     transactionFrom = transaction["from"]
@@ -1420,14 +1447,20 @@ def DoWhaleAlertReply(jsonData):
                 timeStamp = transaction["timestamp"]
                 amount = transaction["amount"]
                 amount_usd = transaction["amount_usd"]
+                transactionSize = int(amount_usd / 10000000)
+                if transactionSize > 10:
+                    transactionSize = 10
+                if transactionSize >= 2:
+                    transactionPic = transactionPic * transactionSize
                 transaction_count = transaction["transaction_count"]
                 readableTimeStamp = datetime.datetime.fromtimestamp(timeStamp)
+
                 readableTimeStamp = readableTimeStamp.strftime("%y-%m-%d %H:%M:%S")
                 symbol = symbol.upper()
                 amount = "{:,}".format(int(amount))
                 amount_usd = "{:,}".format(int(amount_usd))
                 blockchain = blockchain.upper()
-                message=discord.Embed(title=f"{blockchain} (${amount_usd})",url=f"https://whale-alert.io/transaction/{blockchain}/{hash}",color=0xFF5733)
+                message=discord.Embed(title=f"{blockchain} (${amount_usd}) {transactionPic}",url=f"https://whale-alert.io/transaction/{blockchain}/{hash}",color=0xFF5733)
                 message.add_field(name="Transaction Type", value=transactionType, inline=False)
                 message.add_field(name="Amount", value=f"{amount} **{symbol}** (${amount_usd})", inline=False)
                 message.add_field(name="Timestamp", value=f"{readableTimeStamp} ({timeStamp})", inline=False)
