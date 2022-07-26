@@ -415,9 +415,9 @@ def Do_Equity_Reply(jsonData):
 
             message.add_field(name="Share Statistics",
                                 value=insiderHolding, inline=False)
-            morningstarSymbol = symbol.replace('-','.')
-            message.add_field(name="MorningStar Key Ratios",
-                                value=f"http://financials.morningstar.com/ratios/r.html?t={morningstarSymbol}", inline=False)
+            linkSymbol = symbol.replace('-','.')
+            message.add_field(name="ROIC.AI Summary and Financials.",
+                                value=f"https://roic.ai/company/{linkSymbol}", inline=False)
     except:
         message = f"Could not find information for ${symbol}. Perhaps it is not an EQUITY or maybe I'm parsing the data poorly...."
     
