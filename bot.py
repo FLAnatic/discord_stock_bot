@@ -719,7 +719,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
         if symbol.isnumeric():
             continue
         data = fetchSymbolData(symbol)
-        if not len(data):
+        if (data is None) or (not len(data)):
             message = f"Could not find information for ${symbol}."
             dataMessages[symbol] = message
         else:
