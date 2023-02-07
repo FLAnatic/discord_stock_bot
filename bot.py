@@ -98,6 +98,7 @@ def fetchSymbolData(symbol):
     """ make a stock symbol query request to yahoo finance and return entire contents of message returned """
     conn = http.client.HTTPSConnection("apidojo-yahoo-finance-v1.p.rapidapi.com")
     url = f"/stock/v2/get-summary?symbol={symbol}&region=US"
+    message = None
     try:
         conn.request("GET", url, headers=headers)
         res = conn.getresponse()
@@ -106,9 +107,10 @@ def fetchSymbolData(symbol):
         return None
   
     if(res.code == 200):
-        return res.read()
+        return message,res.read()
     else:
-        return None
+        message = f"An error occured trying to retrive information for ${symbol}. Error code:{res.code}. Reason:{res.reason}"
+        return message,None
 
 def find_symbols(text: str) -> List[str]:
     """ find all potential stock symbols starting with $ as a list."""
@@ -718,9 +720,10 @@ def price_reply(symbols: list) -> Dict[str, str]:
         # throw away anything that just has numerics like $1000
         if symbol.isnumeric():
             continue
-        data = fetchSymbolData(symbol)
+        message,data = fetchSymbolData(symbol)
         if (data is None) or (not len(data)):
-            message = f"Could not find information for ${symbol}."
+            if (not message) or (message == ""):
+                message = f"Could not find information for ${symbol}."
             dataMessages[symbol] = message
         else:
             jsonData = json.loads(data.decode())
