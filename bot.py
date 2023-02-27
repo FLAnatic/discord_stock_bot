@@ -212,7 +212,7 @@ def Do_Equity_Reply(jsonData):
             marketCap = jsonData["price"]["marketCap"]["fmt"]
         except:
             marketCap = "N/A"
-        '''try:
+        try:
             trailingPERaw = jsonData["summaryDetail"]["trailingPE"]["raw"]
             trailingPEFmt = jsonData["summaryDetail"]["trailingPE"]["fmt"]
             if 0 <= trailingPERaw <= 15:
@@ -223,7 +223,7 @@ def Do_Equity_Reply(jsonData):
                 peColor = ':yellow_circle:'
             trailingPE = trailingPEFmt + peColor
         except:
-            trailingPE = "N/A"'''
+            trailingPE = "N/A"
         #adding FwdPE
         try:
             FwdPERaw = jsonData["defaultKeyStatistics"]["forwardPE"]['raw']
