@@ -18,7 +18,7 @@ import random
 import numpy as np
 import configparser
 
-testing = False
+testing = True
 
 help_text = """
 
@@ -224,6 +224,19 @@ def Do_Equity_Reply(jsonData):
             trailingPE = trailingPEFmt + peColor
         except:
             trailingPE = "N/A"
+        #adding FwdPE
+        try:
+            FwdPERaw = jsonData["defaultKeyStatistics"]["forwardPE"]['raw']
+            FwdPEFmt = jsonData["defaultKeyStatistics"]["forwardPE"]['fmt']
+            if 0 <= FwdPERaw <= 15:
+                peColor = ':green_circle:'
+            elif FwdPERaw < 0 or FwdPERaw > 50:
+                peColor = ':red_circle:'
+            else:
+                peColor = ':yellow_circle:'
+                FwdPE = FwdPEFmt + peColor
+        except:
+            FwdPE = "N/A"
         try:
             pegRatioRaw = jsonData["defaultKeyStatistics"]["pegRatio"]["raw"]
             pegRatioFmt = jsonData["defaultKeyStatistics"]["pegRatio"]["fmt"]
@@ -386,6 +399,9 @@ def Do_Equity_Reply(jsonData):
             message.add_field(name="Last 52 Week Range", value=fiftyTwoWeekRange, inline=True)
         if trailingPE != "N/A":
             message.add_field(name="PE Ratio (ttm)", value=trailingPE, inline=True)
+        #add FwdPEfield
+        if FwdPE != "N/A":
+            message.add_field(name="PE Ratio (Fwd)", value=FwdPE, inline=True)
         if pegRatio != "N/A":
             message.add_field(name="PEG Ratio", value=pegRatio, inline=True)
         if priceToBook != "N/A":
