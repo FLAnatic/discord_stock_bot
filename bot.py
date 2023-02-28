@@ -234,7 +234,7 @@ def Do_Equity_Reply(jsonData):
                 peColor = ':red_circle:'
             else:
                 peColor = ':yellow_circle:'
-                FwdPE = FwdPEFmt + peColor
+            FwdPE = FwdPEFmt + peColor
         except:
             FwdPE = "N/A"
         try:
