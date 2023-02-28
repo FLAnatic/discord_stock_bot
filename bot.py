@@ -810,8 +810,9 @@ def get_movers():
 
     return message
 
-client = discord.Client()
-bot = commands.Bot(command_prefix="!", description=help_text,)
+intents = discord.Intents.default()
+client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="!",intents=intents, description=help_text,)
 
 # setup uthe daily get movers query with the schedule
 doGetMoversUpdate = False
