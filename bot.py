@@ -860,7 +860,7 @@ async def on_message(message):
     if "moon" in message.content.lower():
         await ctx.reply(":rocket:")
 
-    if "$" in message.content and "," not in message.content:
+    if "$" in message.content and not re.findall(r'\W', message[1:]):
         symbols = find_symbols(message.content)
         if symbols:
             for reply in price_reply(symbols).items():
