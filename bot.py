@@ -115,7 +115,7 @@ def fetchSymbolData(symbol):
 def find_symbols(text: str) -> List[str]:
     """ find all potential stock symbols starting with $ as a list."""
     SYMBOL_REGEX = "[$]([a-zA-Z0-9.=-]{1,9})"
-    DOLLAR_REGEX = r"\$[0-9]{1,3}(?:,[0-9]{3})*(\.[0-9]{2})?"
+    DOLLAR_REGEX = r"\$\d+\.?\d*"
     if re.search(DOLLAR_REGEX, text):
         return "Dollar amounts are not valid symbols"
     return list(set(re.findall(SYMBOL_REGEX, text)))
@@ -860,7 +860,7 @@ async def on_message(message):
     if "moon" in message.content.lower():
         await ctx.reply(":rocket:")
 
-    if "$" in message.content:
+    if "$" in message.content and "," not in message.content:
         symbols = find_symbols(message.content)
         if symbols:
             for reply in price_reply(symbols).items():
