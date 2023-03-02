@@ -115,7 +115,7 @@ def fetchSymbolData(symbol):
 def find_symbols(text: str) -> List[str]:
     """ find all potential stock symbols starting with $ as a list."""
     SYMBOL_REGEX = "[$]([a-zA-Z0-9.=-]{1,9})"
-    DOLLAR_REGEX = r"\$\d+\.?\d*"
+    DOLLAR_REGEX = r"\$\d+([.]\d+)?[MBT]?"
     if re.search(DOLLAR_REGEX, text):
         return "Dollar amounts are not valid symbols"
     return list(set(re.findall(SYMBOL_REGEX, text)))
