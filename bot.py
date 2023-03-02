@@ -810,7 +810,7 @@ def get_movers():
 
     return message
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix="!",intents=intents, description=help_text,)
 
