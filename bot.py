@@ -116,8 +116,9 @@ def find_symbols(text: str) -> List[str]:
     """ find all potential stock symbols starting with $ as a list."""
     SYMBOL_REGEX = "[$]([a-zA-Z0-9.=-]{1,9})"
     DOLLAR_REGEX = r"\$[1-9]\d*([.]\d+)?[KMBT]?"
-    if re.search(DOLLAR_REGEX, text):
-        return f"Dollar amounts such as {text} are not valid symbols"
+    match = re.search(DOLLAR_REGEX, text)
+    if match:
+        return f"Dollar amounts such as {match.group(0)} are not valid symbols"
     return list(set(re.findall(SYMBOL_REGEX, text)))
 
 def Do_Equity_Reply(jsonData):
