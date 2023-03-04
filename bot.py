@@ -734,7 +734,10 @@ def price_reply(symbols: list) -> Dict[str, str]:
     dataMessages = {}
     for symbol in symbols:
         # throw away anything that just has numerics like $1000
-        if symbol.isnumeric():
+        DOLLAR_REGEX = r"^[1-9]\d*(?:\.[a-zA-Z\d]+)?[kmbtKMBT]?"
+        match = re.findall(DOLLAR_REGEX, symbol)
+        if match:
+            print(f'Throwing out ${symbol}. Detected as dollar amount and not a stock ticker.')
             continue
         message,data = fetchSymbolData(symbol)
         if (data is None) or (not len(data)):
