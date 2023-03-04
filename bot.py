@@ -736,7 +736,7 @@ def price_reply(symbols: list) -> Dict[str, str]:
         # throw away anything that just has numerics like $1000
         #if symbol.isnumeric():
         #    continue
-        DOLLAR_REGEX = r"^[1-9]\d*(?:\.[a-zA-Z\d]+)?[KMBT]?"
+        DOLLAR_REGEX = r"^[1-9]\d*(?:\.[a-zA-Z\d]+)?[kmbtKMBT]?"
         match = re.findall(DOLLAR_REGEX, symbol)
         if match:
             dataMessages[symbol] = "Dollar amounts such as $" + symbol + " are not valid symbols"
