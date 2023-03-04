@@ -115,10 +115,6 @@ def fetchSymbolData(symbol):
 def find_symbols(text: str) -> List[str]:
     """ find all potential stock symbols starting with $ as a list."""
     SYMBOL_REGEX = "[$]([a-zA-Z0-9.=-]{1,9})"
-    DOLLAR_REGEX = r"\$[1-9]\d*(?:\.[a-zA-Z\d]+)?[KMBT]?"
-    match = re.findall(DOLLAR_REGEX, text)
-    if match:
-        return "Dollar amounts such as " + ", ".join(match) + " are not valid symbols"
     return list(set(re.findall(SYMBOL_REGEX, text)))
 
 def Do_Equity_Reply(jsonData):
@@ -738,7 +734,12 @@ def price_reply(symbols: list) -> Dict[str, str]:
     dataMessages = {}
     for symbol in symbols:
         # throw away anything that just has numerics like $1000
-        if symbol.isnumeric():
+        #if symbol.isnumeric():
+        #    continue
+        DOLLAR_REGEX = r"^[1-9]\d*(?:\.[a-zA-Z\d]+)?[KMBT]?"
+        match = re.findall(DOLLAR_REGEX, symbol)
+        if match:
+            dataMessages[symbol] = "Dollar amounts such as $" + symbol + " are not valid symbols"
             continue
         message,data = fetchSymbolData(symbol)
         if (data is None) or (not len(data)):
