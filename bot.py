@@ -22,6 +22,8 @@ testing = False
 
 help_text = """
 
+
+
 **Commands**
     ! is the prefix for all bot commands.
     !movers
@@ -729,6 +731,8 @@ def Do_Fund_Reply(jsonData: dict):
     """ formulate a reply specifically for an Mutual Fund quote type """
     return Do_ETF_Reply(jsonData)
 
+rej_list = []
+
 def price_reply(symbols: list) -> Dict[str, str]:
     """ for all symbols in provided list query yahoo finance, parse the data and send an embed reponse or an error message in case of failure """
     dataMessages = {}
@@ -736,6 +740,10 @@ def price_reply(symbols: list) -> Dict[str, str]:
         # throw away anything that just has numerics like $1000
         DOLLAR_REGEX = r"^[1-9]\d*(?:\.[a-zA-Z\d]+)?[kmbtKMBT]?"
         match = re.findall(DOLLAR_REGEX, symbol)
+        if symbol not in rej_list:
+            rej_list.append(symbol)
+        if len(rej_list) > 10:
+            rej_list.pop(0)
         if match:
             print(f'Throwing out ${symbol}. Detected as dollar amount and not a stock ticker.')
             continue
