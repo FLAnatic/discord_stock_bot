@@ -27,11 +27,13 @@ help_text = """
 **Commands**
     ! is the prefix for all bot commands.
     !movers
+    !printrejected
     !chart
     !random
     !help
     !whalealert get
     !whalealert set <value>
+    
 **Inline Features**
     The bot looks at every message in the chat room it is in for stock symbols. Symbols start with a
     `$` followed by the stock symbol. For example: $gme will return data for Gamestop Corp.
@@ -898,6 +900,13 @@ def CleanUpSavedCharts():
 async def movers(ctx):
     """Provides a list of the days top 25 gainers, losers and most active."""
     message = get_movers()
+    await ctx.send(embed = message)
+    return
+
+@bot.command()
+async def printrejected(ctx):
+    """Provides a list of the last 10 rejected tickers."""
+    message = ', '.join(rej_list)
     await ctx.send(embed = message)
     return
 
