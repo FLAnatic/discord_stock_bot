@@ -22,8 +22,6 @@ testing = True
 
 help_text = """
 
-
-
 **Commands**
     ! is the prefix for all bot commands.
     !movers
@@ -742,11 +740,11 @@ def price_reply(symbols: list) -> Dict[str, str]:
         # throw away anything that just has numerics like $1000
         DOLLAR_REGEX = r"^[1-9]\d*(?:\.[a-zA-Z\d]+)?[kmbtKMBT]?"
         match = re.findall(DOLLAR_REGEX, symbol)
-        if symbol not in rej_list:
-            rej_list.append(symbol)
-        if len(rej_list) > 10:
-            rej_list.pop(0)
-        if match:
+        if match:  # if match is found, then symbol is a reject
+            if symbol not in rej_list:
+                rej_list.append(symbol)
+            if len(rej_list) > 10: # if rej_list is bigger than 10 removes index 0
+                rej_list.pop(0)
             print(f'Throwing out ${symbol}. Detected as dollar amount and not a stock ticker.')
             continue
         message,data = fetchSymbolData(symbol)
