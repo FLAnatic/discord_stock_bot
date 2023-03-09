@@ -906,8 +906,11 @@ async def movers(ctx):
 @bot.command()
 async def printrejected(ctx):
     """Provides a list of the last 10 rejected tickers."""
+    if len(rej_list) == 0:
+        await ctx.send(embed='The rejected list is currently empty.')
+        return
     message = ', '.join(rej_list)
-    await ctx.send(embed = message)
+    await ctx.send(embed=message)
     return
 
 @tasks.loop(minutes=1)
