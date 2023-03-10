@@ -905,10 +905,10 @@ async def movers(ctx):
 async def printrejected(ctx):
     """Provides a list of the last 10 rejected tickers."""
     if len(rej_list) == 0:
-        await ctx.send(embed='The rejected list is currently empty.')
+        await ctx.send("The rejected list is currently empty.")
         return
     message = "Here are the last 10 rejected tickers: " + ', '.join(rej_list)
-    await ctx.send(embed=message)
+    await ctx.send(message)
     return
 
 @tasks.loop(minutes=1)
