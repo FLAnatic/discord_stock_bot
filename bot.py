@@ -18,7 +18,7 @@ import random
 import numpy as np
 import configparser
 
-testing = True
+testing = False # need to do this a better way....
 
 help_text = """
 
