@@ -18,18 +18,20 @@ import random
 import numpy as np
 import configparser
 
-testing = False
+testing = True
 
 help_text = """
 
 **Commands**
     ! is the prefix for all bot commands.
     !movers
+    !printrejected
     !chart
     !random
     !help
     !whalealert get
     !whalealert set <value>
+    
 **Inline Features**
     The bot looks at every message in the chat room it is in for stock symbols. Symbols start with a
     `$` followed by the stock symbol. For example: $gme will return data for Gamestop Corp.
@@ -729,6 +731,8 @@ def Do_Fund_Reply(jsonData: dict):
     """ formulate a reply specifically for an Mutual Fund quote type """
     return Do_ETF_Reply(jsonData)
 
+rej_list = []
+
 def price_reply(symbols: list) -> Dict[str, str]:
     """ for all symbols in provided list query yahoo finance, parse the data and send an embed reponse or an error message in case of failure """
     dataMessages = {}
@@ -736,7 +740,11 @@ def price_reply(symbols: list) -> Dict[str, str]:
         # throw away anything that just has numerics like $1000
         DOLLAR_REGEX = r"^[1-9]\d*(?:\.[a-zA-Z\d]+)?[kmbtKMBT]?"
         match = re.findall(DOLLAR_REGEX, symbol)
-        if match:
+        if match:  # if match is found, then symbol is a reject
+            if symbol not in rej_list:
+                rej_list.append(symbol)
+            if len(rej_list) > 10: # if rej_list is bigger than 10 removes index 0
+                rej_list.pop(0)
             print(f'Throwing out ${symbol}. Detected as dollar amount and not a stock ticker.')
             continue
         message,data = fetchSymbolData(symbol)
@@ -891,6 +899,16 @@ async def movers(ctx):
     """Provides a list of the days top 25 gainers, losers and most active."""
     message = get_movers()
     await ctx.send(embed = message)
+    return
+
+@bot.command()
+async def printrejected(ctx):
+    """Provides a list of the last 10 rejected tickers."""
+    if len(rej_list) == 0:
+        await ctx.send("The rejected list is currently empty.")
+        return
+    message = "Here are the last 10 rejected tickers: " + ', '.join(rej_list)
+    await ctx.send(message)
     return
 
 @tasks.loop(minutes=1)
