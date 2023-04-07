@@ -119,6 +119,49 @@ def find_symbols(text: str) -> List[str]:
     SYMBOL_REGEX = "[$]([a-zA-Z0-9.=-]{1,9})"
     return list(set(re.findall(SYMBOL_REGEX, text)))
 
+def Do_Fund_Reply(jsonData: dict):
+    """ formulate a reply specifically for an Mutual Fund quote type """
+    return Do_ETF_Reply(jsonData)
+
+#return ROIC for ticker as long as there is a date
+def roic_per_year(jsonData):
+    income_statement = jsonData["incomeStatementHistory"]["incomeStatementHistory"]
+    balance_sheet = jsonData["balanceSheetHistory"]["balanceSheetStatements"]
+
+    financial_data = {}
+    roic_per_year = []
+
+    for item in income_statement:
+        date = item["endDate"]["fmt"]
+        if not date:
+            continue
+        ebit = item["ebit"]["raw"]
+        effective_tax_rate = item["incomeTaxExpense"]["raw"] / item["incomeBeforeTax"]["raw"]
+        no_pat = ebit * (1 - effective_tax_rate)
+        financial_data[date] = {"no_pat": no_pat}
+
+    for item in balance_sheet:
+        date = item["endDate"]["fmt"]
+        if not date:
+            continue
+        invested_capital = (item["totalLiab"]["raw"] + item["totalStockholderEquity"]["raw"]) - item["totalCurrentLiabilities"]["raw"]
+        financial_data[date].update({"invested_capital": invested_capital})
+
+    for date, values in financial_data.items():
+            roic_percent = (values["no_pat"] / values["invested_capital"])
+            roic_per_year.append(roic_percent)
+    
+    return roic_per_year
+
+#calc last 3 year avg ROIC
+def avg_roic(roic_list):
+    if len(roic_list) >= 3:
+        last_3_years_roic = roic_list[-3:]
+        avg_roic_3_years = sum(last_3_years_roic) / len(last_3_years_roic)
+        return avg_roic_3_years
+    else:
+        print("Not enough data to calculate 3-year average ROIC.")
+
 def Do_Equity_Reply(jsonData):
     """ formulate a reply specifically for an equity quote type """
     try:
@@ -264,7 +307,6 @@ def Do_Equity_Reply(jsonData):
         except:
             priceToBook = "N/A"
         try:
-
             priceToSalesRaw = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["raw"]
             priceToSalesFmt = jsonData["summaryDetail"]["priceToSalesTrailing12Months"]["fmt"]
             if 0 <= priceToSalesRaw <= 2:
@@ -341,6 +383,21 @@ def Do_Equity_Reply(jsonData):
             returnOnEquity = returnOnEquityFmt + returnOnEquityColor
         except:
             returnOnEquity = "N/A"
+        
+        #adding 3 yr Avg ROIC
+        try:
+            returnOnInvestedCapital_by_year = roic_per_year(jsonData)
+            avg_roic = avg_roic(returnOnInvestedCapital_by_year)
+            if avg_roic >= 0.10:
+                returnOnInvestedCapitalColor = ':green_circle:'
+            elif avg_roic < 0:
+                returnOnInvestedCapitalColor = ':red_circle:'
+            else:
+                returnOnInvestedCapitalColor = ':yellow_circle:'
+            avg_roic_str = "{:.2%}".format(avg_roic) + returnOnInvestedCapitalColor
+        except:
+            avg_roic_str = "N/A"
+            
         try:
             revenueGrowthFmt = jsonData["financialData"]["revenueGrowth"]["fmt"]
             revenueGrowthRaw = jsonData["financialData"]["revenueGrowth"]["raw"]   
@@ -416,6 +473,8 @@ def Do_Equity_Reply(jsonData):
             message.add_field(name="Return on Assets (ttm)", value=returnOnAssets, inline=True)
         if returnOnEquity != "N/A":
             message.add_field(name="Return on Equity (ttm)", value=returnOnEquity, inline=True)
+        if avg_roic_str != "N/A":
+            message.add_field(name="Return on Invested Captial (3 YR AVG.)", value=avg_roic_str, inline=True)
         if revenueGrowth != "N/A":
             message.add_field(name="Quarterly Revenue Growth (yoy)", value=revenueGrowth, inline=True)
         if freeCashFlow != "N/A":
